@@ -5,11 +5,22 @@ import glob
 import re
 import wx
 
-_ = wx.GetTranslation
 
 from wx.lib.embeddedimage import PyEmbeddedImage
 
 PUNCTUATION = (".", "?", "!", ":", ";")
+
+_ = wx.GetTranslation
+
+supported_languages = (
+    ("en", u"English", wx.LANGUAGE_ENGLISH),
+    ("it", u"italiano", wx.LANGUAGE_ITALIAN),
+    ("fr", u"français", wx.LANGUAGE_FRENCH),
+    ("de", u"Deutsch", wx.LANGUAGE_GERMAN),
+    ("es", u"español", wx.LANGUAGE_SPANISH),
+    ("zh", u"中文", wx.LANGUAGE_CHINESE),
+    ("hu", u"Magyar", wx.LANGUAGE_HUNGARIAN),
+)
 
 
 icons8_translation_50 = PyEmbeddedImage(
@@ -711,11 +722,13 @@ class PoboyFrame(wx.Frame):
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         self.SetSize((1200, 800))
+        self.language = None
+        self.locale = None
 
         self.panel = TranslationPanel(self, wx.ID_ANY)
 
         # Menu Bar
-        self.frame_menubar = wx.MenuBar()
+        self.main_menubar = wx.MenuBar()
         wxglade_tmp_menu = wx.Menu()
 
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("New\tCtrl+N"), "")
@@ -733,7 +746,7 @@ class PoboyFrame(wx.Frame):
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save as"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_saveas, item)
 
-        self.frame_menubar.Append(wxglade_tmp_menu, _("File"))
+        self.main_menubar.Append(wxglade_tmp_menu, _("File"))
         wxglade_tmp_menu = wx.Menu()
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Previous Entry\tCtrl+Up"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_previous, item)
@@ -741,8 +754,11 @@ class PoboyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_next, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Copy Source\tAlt+Down"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_source, item)
-        self.frame_menubar.Append(wxglade_tmp_menu, _("Navigate"))
-        self.SetMenuBar(self.frame_menubar)
+        self.main_menubar.Append(wxglade_tmp_menu, _("Navigate"))
+
+        self.add_language_menu()
+
+        self.SetMenuBar(self.main_menubar)
         # Menu Bar end
 
         _icon = wx.NullIcon
@@ -779,19 +795,76 @@ class PoboyFrame(wx.Frame):
     def on_menu_source(self, event):  # wxGlade: MyFrame.<event_handler>
         self.panel.translation_copy_original_to_translated()
 
+    def load_language(self, lang):
+        try:
+            language_code, language_name, language_index = supported_languages[lang]
+        except (IndexError, ValueError):
+            return
+        self.language = lang
+
+        if self.locale:
+            assert sys.getrefcount(self.locale) <= 2
+            del self.locale
+        self.locale = wx.Locale(language_index)
+        # wxWidgets is broken. IsOk()==false and pops up error dialog, but it translates fine!
+        if self.locale.IsOk() or "linux" in sys.platform:
+            self.locale.AddCatalog("poboy")
+        else:
+            self.locale = None
+
+    def add_language_menu(self):
+        tl = wx.FileTranslationsLoader()
+        trans = tl.GetAvailableTranslations("poboy")
+
+        wxglade_tmp_menu = wx.Menu()
+        i = 0
+        for lang in supported_languages:
+            language_code, language_name, language_index = lang
+            m = wxglade_tmp_menu.Append(wx.ID_ANY, language_name, "", wx.ITEM_RADIO)
+            if i == self.language:
+                m.Check(True)
+
+            def language_update(q):
+                return lambda e: self.load_language(q)
+
+            self.Bind(wx.EVT_MENU, language_update(i), id=m.GetId())
+            if language_code not in trans and i != 0:
+                m.Enable(False)
+            i += 1
+        self.main_menubar.Append(wxglade_tmp_menu, _("Languages"))
+
 
 # end of class MyFrame
 
-
 class PoboyApp(wx.App):
     def OnInit(self):
+        self.load_catalogs()
+
         self.frame = PoboyFrame(None, wx.ID_ANY, "")
         self.SetTopWindow(self.frame)
         self.frame.Show()
         return True
 
 
-# end of class MyApp
+    def load_catalogs(self):
+        try:  # pyinstaller internal location
+            _resource_path = os.path.join(sys._MEIPASS, "locale")
+            wx.Locale.AddCatalogLookupPathPrefix(_resource_path)
+        except Exception:
+            pass
+
+        try:  # Mac py2app resource
+            _resource_path = os.path.join(os.environ["RESOURCEPATH"], "locale")
+            wx.Locale.AddCatalogLookupPathPrefix(_resource_path)
+        except Exception:
+            pass
+
+        wx.Locale.AddCatalogLookupPathPrefix("locale")
+
+        # Default Locale, prepended. Check this first.
+        basepath = os.path.abspath(os.path.dirname(sys.argv[0]))
+        localedir = os.path.join(basepath, "locale")
+        wx.Locale.AddCatalogLookupPathPrefix(localedir)
 
 
 def run():

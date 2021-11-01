@@ -1,0 +1,128 @@
+#
+msgid "Translation"
+msgstr ""
+
+#
+msgid "Workflow"
+msgstr ""
+
+#
+msgid "Errors"
+msgstr ""
+
+#
+msgid "Issues"
+msgstr ""
+
+#
+msgid "printf-tokens"
+msgstr ""
+
+#
+msgid "msgid==msgstr"
+msgstr ""
+
+#
+msgid "capitalization"
+msgstr ""
+
+#
+msgid "ending punctuation"
+msgstr ""
+
+#
+msgid "ending whitespace"
+msgstr ""
+
+#
+msgid "double space"
+msgstr ""
+
+#
+msgid "All Translations"
+msgstr ""
+
+#
+msgid "Untranslated"
+msgstr ""
+
+#
+msgid "Translated"
+msgstr ""
+
+#
+msgid "Fuzzy"
+msgstr ""
+
+#
+msgid "Open"
+msgstr ""
+
+#
+msgid "Save Project"
+msgstr ""
+
+#
+msgid "Open"
+msgstr ""
+
+#
+msgid "HEADER"
+msgstr ""
+
+#
+msgid "HEADER"
+msgstr ""
+
+#
+msgid "New\tCtrl+N"
+msgstr ""
+
+#
+msgid "Open Translation\tCtrl+O"
+msgstr ""
+
+#
+msgid "Open Template\tCtrl+Shift+O"
+msgstr ""
+
+#
+msgid "Open Sources\tAlt+O"
+msgstr ""
+
+#
+msgid "Save Translation\tCtrl+S"
+msgstr ""
+
+#
+msgid "Save Template\tCtrl+S"
+msgstr ""
+
+#
+msgid "Save as"
+msgstr ""
+
+#
+msgid "File"
+msgstr ""
+
+#
+msgid "Previous Entry\tCtrl+Up"
+msgstr ""
+
+#
+msgid "Next Entry\tCtrl+Down"
+msgstr ""
+
+#
+msgid "Copy Source\tAlt+Down"
+msgstr ""
+
+#
+msgid "Navigate"
+msgstr ""
+
+#
+msgid "POboy"
+msgstr ""
+
