@@ -273,10 +273,77 @@ class TranslationPanel(wx.Panel):
         self.entries = []
         self.entry = None
 
-    def load_translation(self, translation_file):
+    def open_load_translation_dialog(self, filename=None):
+        if filename is None:
+            filename = "."
+        default_file = os.path.basename(filename)
+        default_dir = os.path.dirname(filename)
+
+        with wx.FileDialog(
+                self,
+                _("Open"),
+                defaultDir=default_dir,
+                defaultFile=default_file,
+                wildcard="*.po",
+                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as fileDialog:
+            fileDialog.SetFilename(default_file)
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return  # the user changed their mind
+            pathname = fileDialog.GetPath()
+            self.load_translation_file(pathname)
+
+    def open_save_translation_dialog(self):
+        with wx.FileDialog(
+                self,
+                _("Save Project"),
+                wildcard="*.po",
+                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+        ) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return  # the user changed their mind
+            pathname = fileDialog.GetPath()
+            if not pathname.lower().endswith(".po"):
+                pathname += ".po"
+            self.save_translation_file(pathname)
+
+    def open_load_template_dialog(self, filename=None):
+        if filename is None:
+            filename = "."
+        default_file = os.path.basename(filename)
+        default_dir = os.path.dirname(filename)
+
+        with wx.FileDialog(
+                self,
+                _("Open"),
+                defaultDir=default_dir,
+                defaultFile=default_file,
+                wildcard="*.po",
+                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as fileDialog:
+            fileDialog.SetFilename(default_file)
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return  # the user changed their mind
+            pathname = fileDialog.GetPath()
+            self.panel.load_template_file(pathname)
+
+    def open_load_sources_dialog(self):
+        dlg = wx.DirDialog(self,
+                           message="Choose python sources directory",
+                           style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK:
+            directory = os.path.abspath(dlg.GetPath())
+            self.generate_from_python_sources(directory)
+        dlg.Destroy()
+
+    def clear_project(self):
+        self.entries.clear()
+        self.tree_rebuild_tree()
+
+    def load_translation_file(self, translation_file):
         self.translations = open(translation_file, "r", encoding="utf-8")
         translations = self.translations
-        self.clear()
+        self.clear_project()
 
         file_lines = translations.readlines()
         index = 0
@@ -325,14 +392,65 @@ class TranslationPanel(wx.Panel):
                 msgstr = msgstr.replace("\\n", "\n")
                 self.entries.append([comment, msgid, msgstr, list()])
             index += 1
-        self.update()
+        self.tree_rebuild_tree()
         self.tree.ExpandAll()
 
-    def clear(self):
-        self.entries.clear()
-        self.update()
+    def load_template_file(self, translation_file):
+        self.translations = open(translation_file, "r", encoding="utf-8")
+        translations = self.translations
+        self.clear_project()
 
-    def save_translation(self, translation_file):
+        file_lines = translations.readlines()
+        index = 0
+        while index < len(file_lines):
+            comment = ""
+            msgid = ""
+            msgstr = ""
+            try:
+                # Find comments and all multiline comments
+                if re.match("^#(.*)$", file_lines[index]):
+                    m = re.match("^#(.*)$", file_lines[index])
+                    comment = m.group(1)
+                    index += 1
+                    if index >= len(file_lines):
+                        break
+                    while re.match("^#(.*)$", file_lines[index]):
+                        m = re.match("^#(.*)$", file_lines[index])
+                        comment += m.group(1)
+                        index += 1
+
+                # find msgid and all multiline message ids
+                if re.match("msgid \"(.*)\"", file_lines[index]):
+                    m = re.match("msgid \"(.*)\"", file_lines[index])
+                    msgid = m.group(1)
+                    index += 1
+                    if index >= len(file_lines):
+                        break
+                    while re.match("^\"(.*)\"$", file_lines[index]):
+                        m = re.match("^\"(.*)\"$", file_lines[index])
+                        msgid += m.group(1)
+                        index += 1
+
+                # find all message strings and all multi-line message strings
+                if re.match("msgstr \"(.*)\"", file_lines[index]):
+                    m = re.match("msgstr \"(.*)\"", file_lines[index])
+                    msgstr = m.group(1)
+                    index += 1
+                    while re.match("^\"(.*)\"$", file_lines[index]):
+                        m = re.match("^\"(.*)\"$", file_lines[index])
+                        msgstr += m.group(1)
+                        index += 1
+            except IndexError:
+                break
+            if len(comment) or len(msgid) or len(msgstr):
+                msgid = msgid.replace("\\n", "\n")
+                msgstr = msgstr.replace("\\n", "\n")
+                self.entries.append([comment, msgid, msgstr, list()])
+            index += 1
+        self.tree_rebuild_tree()
+        self.tree.ExpandAll()
+
+    def save_translation_file(self, translation_file):
         with open(translation_file, "w", encoding="utf-8") as save:
             for entry in self.entries:
                 comment = entry[0]
@@ -343,7 +461,24 @@ class TranslationPanel(wx.Panel):
                 save.write(msgid)
                 save.write(msgstr)
 
-    def clear_tree(self):
+    def save_template_file(self, template_file):
+        pass
+
+    def generate_from_python_sources(self, directory):
+        """
+        This will later be replaced with internal parsing of the python files.
+
+        :param directory:
+        :return:
+        """
+        for python_file in glob.glob("%s/**/*.py" % directory, recursive=True):
+            file = open(python_file, "r", encoding="utf-8").read()
+            search = re.compile("_\([\"\']([^\"\']*)[\"\']\)")
+            for m in search.findall(file):
+                self.add_entry(msgid=str(m))
+        self.tree_rebuild_tree()
+
+    def tree_clear_tree(self):
         self.tree.DeleteChildren(self.all)
         self.tree.DeleteChildren(self.error_printf)
         self.tree.DeleteChildren(self.warning_equal)
@@ -354,60 +489,48 @@ class TranslationPanel(wx.Panel):
         self.tree.DeleteChildren(self.workflow_translated)
         self.tree.DeleteChildren(self.workflow_untranslated)
 
-    def update(self):
-        self.clear_tree()
+    def tree_rebuild_tree(self):
+        self.tree_clear_tree()
         for entry in self.entries:
             msgid = entry[1]
             name = msgid.strip()
             if name == "":
                 name = _("HEADER")
             self.tree.AppendItem(self.all, name, data=entry)
-            self.process_validate_entry(entry)
+            self.entry_revalidate(entry)
 
-    def add_entry(self, comment="", msgid="", msgstr=""):
-        self.entries.append([comment, msgid, msgstr, []])
-
-    def update_translation_values(self):
-        if self.entry is not None:
-            self.text_comment.SetValue(self.entry[0])
-            self.text_original_text.SetValue(self.entry[1])
-            self.text_translated_text.SetValue(self.entry[2])
-
-    def on_tree_selection(self, event):
-        try:
-            data = [
-                self.tree.GetItemData(item) for item in self.tree.GetSelections()
-            ]
-            if len(data) > 0:
-                self.entry = data[0]
-                self.update_translation_values()
-        except RuntimeError:
-            pass
-
-    def source(self):
-        self.text_translated_text.SetValue(self.text_original_text.GetValue())
-
-    def next(self):
+    def tree_move_to_next(self):
         t = None
         for item in list(self.tree.GetSelections()):
             t = item
             break
         n = self.tree.GetNextSibling(t)
-        self.process_validate_entry(self.entry)
+        self.entry_revalidate(self.entry)
         if n.IsOk():
             self.tree.SelectItem(n)
 
-    def previous(self):
+    def tree_move_to_previous(self):
         t = None
         for item in list(self.tree.GetSelections()):
             t = item
             break
         n = self.tree.GetPrevSibling(t)
-        self.process_validate_entry(self.entry)
+        self.entry_revalidate(self.entry)
         if n.IsOk():
             self.tree.SelectItem(n)
 
-    def process_validate_entry(self, entry):
+    def entry_revalidate(self, entry):
+        """
+        Find the entry's current classification and the entry's qualified classifcations and remove the entry from
+        those sections it does not qualify for anymore, and add it to those sections it has started to qualify for,
+        those sections which are still qualified remain.
+
+        This permits the tree to remove untranslated or error entries from those section as those are translated and
+        the errors are corrected.
+
+        :param entry:
+        :return:
+        """
         comment = entry[0]
         msgid = entry[1]
         msgstr = entry[2]
@@ -416,7 +539,7 @@ class TranslationPanel(wx.Panel):
         old_parents = []
         for item in items:
             old_parents.append(self.tree.GetItemParent(item))
-        new_parents = self.find_classifications(entry)
+        new_parents = self.entry_classify(entry)
 
         name = msgid.strip()
         if name == "":
@@ -438,7 +561,15 @@ class TranslationPanel(wx.Panel):
         for item in adding:
             items.append(self.tree.AppendItem(item, name, data=entry))
 
-    def find_classifications(self, entry):
+    def entry_classify(self, entry=None):
+        """
+        Find all sections for which the current entry qualifies.
+
+        :param entry: entry to classify.
+        :return:
+        """
+        if entry is None:
+            entry = self.entry
         classes = []
         comment = entry[0]
         msgid = entry[1]
@@ -470,6 +601,28 @@ class TranslationPanel(wx.Panel):
             classes.append(self.warning_double_space)
         return classes
 
+    def add_entry(self, comment="", msgid="", msgstr=""):
+        self.entries.append([comment, msgid, msgstr, []])
+
+    def update_translation_values(self, entry=None):
+        if entry is None:
+            entry = self.entry
+        if entry is not None:
+            self.text_comment.SetValue(entry[0])
+            self.text_original_text.SetValue(entry[1])
+            self.text_translated_text.SetValue(entry[2])
+
+    def on_tree_selection(self, event):
+        try:
+            data = [
+                self.tree.GetItemData(item) for item in self.tree.GetSelections()
+            ]
+            if len(data) > 0:
+                self.entry = data[0]
+                self.update_translation_values()
+        except RuntimeError:
+            pass
+
     def on_text_translated(self, event):  # wxGlade: TranslationPanel.<event_handler>
         if self.entry:
             self.entry[2] = self.text_translated_text.GetValue()
@@ -479,10 +632,13 @@ class TranslationPanel(wx.Panel):
         for item in list(self.tree.GetSelections()):
             t = self.tree.GetNextSibling(item)
         if self.entry is not None:
-            self.process_validate_entry(self.entry)
+            self.entry_revalidate(self.entry)
         if t is not None and t.IsOk():
             self.tree.SelectItem(t)
         self.text_translated_text.SetFocus()
+
+    def translation_copy_original_to_translated(self):
+        self.text_translated_text.SetValue(self.text_original_text.GetValue())
 
 
 class PoboyFrame(wx.Frame):
@@ -512,8 +668,7 @@ class PoboyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_save, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save as"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_saveas, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Export"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_export, item)
+
         self.frame_menubar.Append(wxglade_tmp_menu, _("File"))
         wxglade_tmp_menu = wx.Menu()
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Previous Entry\tCtrl+Up"), "")
@@ -532,82 +687,33 @@ class PoboyFrame(wx.Frame):
         self.SetTitle(_("POboy"))
 
     def on_menu_new(self, event):
-        self.panel.clear()
+        self.panel.clear_project()
 
     def on_menu_open(self, event):  # wxGlade: MyFrame.<event_handler>
         filename = "./locale/messages.po"
-        default_file = os.path.basename(filename)
-        default_dir = os.path.dirname(filename)
-
-        with wx.FileDialog(
-                self,
-                _("Open"),
-                defaultDir=default_dir,
-                defaultFile=default_file,
-                wildcard="*.po",
-                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
-        ) as fileDialog:
-            fileDialog.SetFilename(default_file)
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return  # the user changed their mind
-            pathname = fileDialog.GetPath()
-            self.panel.load_translation(pathname)
+        self.panel.open_load_translation_dialog(filename)
 
     def on_menu_open_template(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.on_menu_open(event)
-
-    def generate_from_python_sources(self, directory):
-        """
-        This will later be replaced with internal parsing of the python files.
-        :param directory:
-        :return:
-        """
-        for python_file in glob.glob("%s/**/*.py" % directory, recursive=True):
-            file = open(python_file, "r", encoding="utf-8").read()
-            search = re.compile("_\([\"\']([^\"\']*)[\"\']\)")
-            for m in search.findall(file):
-                self.panel.add_entry(msgid=str(m))
-        self.panel.update()
+        filename = "./locale/messages.po"
+        self.panel.open_load_template_dialog(filename)
 
     def on_menu_open_sources(self, event):
-        dlg = wx.DirDialog(self,
-                           message="Choose python sources directory",
-                           style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
-        if dlg.ShowModal() == wx.ID_OK:
-            directory = os.path.abspath(dlg.GetPath())
-            self.generate_from_python_sources(directory)
-        dlg.Destroy()
+        self.panel.open_load_sources_dialog()
 
     def on_menu_save(self, event):  # wxGlade: MyFrame.<event_handler>
-        with wx.FileDialog(
-                self,
-                _("Save Project"),
-                wildcard="*.po",
-                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-        ) as fileDialog:
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return  # the user changed their mind
-            pathname = fileDialog.GetPath()
-            if not pathname.lower().endswith(".po"):
-                pathname += ".po"
-            self.panel.save_translation(pathname)
+        self.panel.save_translation_file()
 
     def on_menu_saveas(self, event):  # wxGlade: MyFrame.<event_handler>
-        print("Event handler 'on_menu_saveas' not implemented!")
-        event.Skip()
-
-    def on_menu_export(self, event):  # wxGlade: MyFrame.<event_handler>
-        print("Event handler 'on_menu_export' not implemented!")
-        event.Skip()
+        self.panel.open_save_translation_dialog()
 
     def on_menu_previous(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.panel.previous()
+        self.panel.tree_move_to_previous()
 
     def on_menu_next(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.panel.next()
+        self.panel.tree_move_to_next()
 
     def on_menu_source(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.panel.source()
+        self.panel.translation_copy_original_to_translated()
 
 
 # end of class MyFrame
