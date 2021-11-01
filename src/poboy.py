@@ -207,7 +207,7 @@ class TranslationPanel(wx.Panel):
         self.template = None
         self.language = None
 
-        sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.tree = wx.TreeCtrl(
             self,
@@ -219,7 +219,7 @@ class TranslationPanel(wx.Panel):
             | wx.TR_SINGLE
             | wx.TR_TWIST_BUTTONS,
         )
-        sizer_1.Add(self.tree, 1, wx.EXPAND, 0)
+        main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
         self.root = self.tree.AddRoot(_("Translation"))
 
@@ -253,9 +253,9 @@ class TranslationPanel(wx.Panel):
         self.tree.ExpandAll()
 
         self.panel_entry = wx.Panel(self, wx.ID_ANY)
-        sizer_1.Add(self.panel_entry, 3, wx.EXPAND, 0)
+        main_sizer.Add(self.panel_entry, 3, wx.EXPAND, 0)
 
-        sizer_2 = wx.BoxSizer(wx.VERTICAL)
+        entry_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.text_comment = wx.TextCtrl(
             self.panel_entry, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
@@ -270,13 +270,13 @@ class TranslationPanel(wx.Panel):
                 "Segoe UI",
             )
         )
-        sizer_2.Add(self.text_comment, 3, wx.EXPAND, 0)
+        entry_sizer.Add(self.text_comment, 3, wx.EXPAND, 0)
 
-        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_2.Add(sizer_3, 1, wx.EXPAND, 0)
+        fuzzy_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        entry_sizer.Add(fuzzy_sizer, 1, wx.EXPAND, 0)
 
-        self.checkbox_1 = wx.CheckBox(self.panel_entry, wx.ID_ANY, _("Fuzzy"))
-        self.checkbox_1.SetFont(
+        self.check_fuzzy = wx.CheckBox(self.panel_entry, wx.ID_ANY, _("Fuzzy"))
+        self.check_fuzzy.SetFont(
             wx.Font(
                 15,
                 wx.FONTFAMILY_DEFAULT,
@@ -286,7 +286,7 @@ class TranslationPanel(wx.Panel):
                 "Segoe UI",
             )
         )
-        sizer_3.Add(self.checkbox_1, 0, 0, 0)
+        fuzzy_sizer.Add(self.check_fuzzy, 0, 0, 0)
 
         self.text_original_text = wx.TextCtrl(
             self.panel_entry, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
@@ -301,7 +301,7 @@ class TranslationPanel(wx.Panel):
                 "Segoe UI",
             )
         )
-        sizer_2.Add(self.text_original_text, 6, wx.EXPAND, 0)
+        entry_sizer.Add(self.text_original_text, 6, wx.EXPAND, 0)
 
         self.text_translated_text = wx.TextCtrl(
             self.panel_entry, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER
@@ -316,19 +316,17 @@ class TranslationPanel(wx.Panel):
                 "Segoe UI",
             )
         )
-        sizer_2.Add(self.text_translated_text, 6, wx.EXPAND, 0)
+        entry_sizer.Add(self.text_translated_text, 6, wx.EXPAND, 0)
 
-        self.panel_entry.SetSizer(sizer_2)
+        self.panel_entry.SetSizer(entry_sizer)
 
-        self.SetSizer(sizer_1)
+        self.SetSizer(main_sizer)
 
         self.Layout()
 
         self.Bind(wx.EVT_TEXT, self.on_text_translated, self.text_translated_text)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_enter, self.text_translated_text)
         self.text_translated_text.SetFocus()
-        self.text_original_text.SetCanFocus(False)
-        self.text_comment.SetCanFocus(False)
         # end wxGlade
         self.entries = []
         self.entry = None
