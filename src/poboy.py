@@ -52,18 +52,6 @@ def plugin(kernel, lifecycle):
             "generate", input_type="locale", output_type="locale", hidden=True
         )
         def generate_locale(channel, _, data=None, **kwargs):
-            translate = _
-            for python_file in glob.glob("meerk40t/**/*.py", recursive=True):
-                channel(python_file)
-                file = open(python_file, "r", encoding="utf-8").read()
-                search = re.compile("_\([\"\']([^\"\']*)[\"\']\)")
-                # TODO: Will not find multilined.
-                for m in search.findall(file):
-                    translation = translate(m)
-                    if m == translation:
-                        channel("No Translation: %s" % m)
-                    else:
-                        channel("%s -> %s" % (m, translation))
 
             return "locale", data
 
@@ -203,7 +191,7 @@ def plugin(kernel, lifecycle):
             template = codecs.open(filename, "w", "utf8")
             template.writelines(lines)
         try:
-            kernel.register("window/Translate", Translation)
+            kernel.register("window/Translate", PoboyFrame)
         except NameError:
             pass
 
@@ -282,14 +270,14 @@ class TranslationPanel(wx.Panel):
         self.text_original_text.SetCanFocus(False)
         self.text_comment.SetCanFocus(False)
         # end wxGlade
-        self.entries = None
+        self.entries = []
         self.entry = None
 
     def load_translation(self, translation_file):
         self.translations = open(translation_file, "r", encoding="utf-8")
         translations = self.translations
+        self.clear()
 
-        self.entries = []
         file_lines = translations.readlines()
         index = 0
         while index < len(file_lines):
@@ -340,6 +328,10 @@ class TranslationPanel(wx.Panel):
         self.update()
         self.tree.ExpandAll()
 
+    def clear(self):
+        self.entries.clear()
+        self.update()
+
     def save_translation(self, translation_file):
         with open(translation_file, "w", encoding="utf-8") as save:
             for entry in self.entries:
@@ -371,6 +363,9 @@ class TranslationPanel(wx.Panel):
                 name = _("HEADER")
             self.tree.AppendItem(self.all, name, data=entry)
             self.process_validate_entry(entry)
+
+    def add_entry(self, comment="", msgid="", msgstr=""):
+        self.entries.append([comment, msgid, msgstr, []])
 
     def update_translation_values(self):
         if self.entry is not None:
@@ -537,8 +532,7 @@ class PoboyFrame(wx.Frame):
         self.SetTitle(_("POboy"))
 
     def on_menu_new(self, event):
-        self.panel.entries.clear()
-        self.panel.update()
+        self.panel.clear()
 
     def on_menu_open(self, event):  # wxGlade: MyFrame.<event_handler>
         filename = "./locale/messages.po"
@@ -560,12 +554,29 @@ class PoboyFrame(wx.Frame):
             self.panel.load_translation(pathname)
 
     def on_menu_open_template(self, event):  # wxGlade: MyFrame.<event_handler>
-        print("Event handler 'on_menu_open' not implemented!")
-        event.Skip()
+        self.on_menu_open(event)
 
-    def on_menu_open_sources(self, event):  # wxGlade: MyFrame.<event_handler>
-        print("Event handler 'on_menu_open' not implemented!")
-        event.Skip()
+    def generate_from_python_sources(self, directory):
+        """
+        This will later be replaced with internal parsing of the python files.
+        :param directory:
+        :return:
+        """
+        for python_file in glob.glob("%s/**/*.py" % directory, recursive=True):
+            file = open(python_file, "r", encoding="utf-8").read()
+            search = re.compile("_\([\"\']([^\"\']*)[\"\']\)")
+            for m in search.findall(file):
+                self.panel.add_entry(msgid=str(m))
+        self.panel.update()
+
+    def on_menu_open_sources(self, event):
+        dlg = wx.DirDialog(self,
+                           message="Choose python sources directory",
+                           style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK:
+            directory = os.path.abspath(dlg.GetPath())
+            self.generate_from_python_sources(directory)
+        dlg.Destroy()
 
     def on_menu_save(self, event):  # wxGlade: MyFrame.<event_handler>
         with wx.FileDialog(
