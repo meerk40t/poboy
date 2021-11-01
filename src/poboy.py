@@ -504,6 +504,8 @@ class TranslationPanel(wx.Panel):
         for item in list(self.tree.GetSelections()):
             t = item
             break
+        if t is None:
+            return
         n = self.tree.GetNextSibling(t)
         self.entry_revalidate(self.entry)
         if n.IsOk():
@@ -514,6 +516,8 @@ class TranslationPanel(wx.Panel):
         for item in list(self.tree.GetSelections()):
             t = item
             break
+        if t is None:
+            return
         n = self.tree.GetPrevSibling(t)
         self.entry_revalidate(self.entry)
         if n.IsOk():
