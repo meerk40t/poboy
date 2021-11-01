@@ -13,25 +13,26 @@ PUNCTUATION = (".", "?", "!", ":", ";")
 
 
 icons8_translation_50 = PyEmbeddedImage(
-    b'iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABmJLR0QA/wD/AP+gvaeTAAAD'
-    b'oklEQVRogd2ay0sVURzHP+bNWrgpuPdKLYKeG20jImQRBZdoERTSwmiT1CK0FkGt7WlRQi2K'
-    b'3Bb9ARIu06VEi8RKe1EE3gjKIGtRRt4W8xtnmjsz5zEzV/MLB+ae8zvf7/nOnDmvubDM0ABc'
-    b'Az4ClRqlMtAv2jpoAnpUQVdraCCYrmiamJL43rjAsgTt0CBNCx14TyYOfhNT8jsS7t2pNVS6'
-    b'ReC5xLwE1iUlzApxusYmVIRZIkq3AEyi2Z0AVqTbrsVHkieSVd0CXtd6RQ26VpZ1jc3EEaY1'
-    b'X9gYMTazlI2AwYSY5qi1EvgufEVFrImu1hJFl3A70IrT2Ci4M/a0Bl/qw74u4TOJa42JGZKY'
-    b'GynqakOX8LbE3Y8o3yflP4H1KepqQ5dwK/BLYk8EyjYCX6SsL2VdbZgQnpLYeeA8kAM2AG8k'
-    b'fxSo1+Ap+nRtUuh+xvTOnBUjFeAJ8EGunwJrNTnywERCMxUC+xmbR7wf+Oar+wc4DNQp6hWA'
-    b'ks+MaoiOQuh+xtRIHnjgq/fbdz0JnCF8QdoIvMB5z0oh5aaoareukRxwEvgs8T+A0zjd6Rxe'
-    b'F3sdw9GHY6Zg2uoQGBupB7rw9ggVYATYFIjLAQeAo4H8PDCA92I22rQ6BMZG2n0xb4FOQ8FH'
-    b'UnfAsJ4KVl3rHnCM+OVJFFpwzOQD+TlgjaScBa/1O2KCAk7jW2Jien3aygVhCGpi5DreuxSF'
-    b'cbz5aNxCI1Mj7oucwzETNU+0ieYQ8F6u2wy1MjPiztY6K99B0ewELsn1XUO9zIyUcCa7CeKH'
-    b'2EZgFvgKrAK2if6sol4QVe12j0w7DEj8KOKNSCWqR6cgukVv0Jf3WPK6DXSrjPT7Mm3ThIYB'
-    b'F2NSZ5cvzx3BxpIYaRAzZZKZ0VkANkvsO/5dYOaBOSlrtjWSFCaEtyT2QkjZQym7mYFuqoSr'
-    b'gRmJbceb1d10XMpmJDYtXW3oEh5Bv5t2meiqNkG6cE2o+EaAPTjb4tmImCacg4tRYG9S3R40'
-    b'jvIDhKonshlnOTJH/Oi2W7jmpY61rjsMan2X0CEUuEP8kCKuDm/J0p9E1+Y4X2Ukh/fFWGcv'
-    b'c1FiPxG/bVDeQFMzKsJDUu4uSVTYgrcqPphAFzAzoyIclvI7KlEf3Nl/OIHuAvzH+ZNEHxik'
-    b'Pp5rYkF32X1DDIPJ5+FFfyJRMP3GvSSNGP1lQpB0P2ODnaIZ+UHJZkJMYz9jmy7HNcx0iZLW'
-    b'fsYkTYsJ3b9J/R/4C673TQnRnTmBAAAAAElFTkSuQmCC')
+    b"iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABmJLR0QA/wD/AP+gvaeTAAAD"
+    b"oklEQVRogd2ay0sVURzHP+bNWrgpuPdKLYKeG20jImQRBZdoERTSwmiT1CK0FkGt7WlRQi2K"
+    b"3Bb9ARIu06VEi8RKe1EE3gjKIGtRRt4W8xtnmjsz5zEzV/MLB+ae8zvf7/nOnDmvubDM0ABc"
+    b"Az4ClRqlMtAv2jpoAnpUQVdraCCYrmiamJL43rjAsgTt0CBNCx14TyYOfhNT8jsS7t2pNVS6"
+    b"ReC5xLwE1iUlzApxusYmVIRZIkq3AEyi2Z0AVqTbrsVHkieSVd0CXtd6RQ26VpZ1jc3EEaY1"
+    b"X9gYMTazlI2AwYSY5qi1EvgufEVFrImu1hJFl3A70IrT2Ci4M/a0Bl/qw74u4TOJa42JGZKY"
+    b"GynqakOX8LbE3Y8o3yflP4H1KepqQ5dwK/BLYk8EyjYCX6SsL2VdbZgQnpLYeeA8kAM2AG8k"
+    b"fxSo1+Ap+nRtUuh+xvTOnBUjFeAJ8EGunwJrNTnywERCMxUC+xmbR7wf+Oar+wc4DNQp6hWA"
+    b"ks+MaoiOQuh+xtRIHnjgq/fbdz0JnCF8QdoIvMB5z0oh5aaoareukRxwEvgs8T+A0zjd6Rxe"
+    b"F3sdw9GHY6Zg2uoQGBupB7rw9ggVYATYFIjLAQeAo4H8PDCA92I22rQ6BMZG2n0xb4FOQ8FH"
+    b"UnfAsJ4KVl3rHnCM+OVJFFpwzOQD+TlgjaScBa/1O2KCAk7jW2Jien3aygVhCGpi5DreuxSF"
+    b"cbz5aNxCI1Mj7oucwzETNU+0ieYQ8F6u2wy1MjPiztY6K99B0ewELsn1XUO9zIyUcCa7CeKH"
+    b"2EZgFvgKrAK2if6sol4QVe12j0w7DEj8KOKNSCWqR6cgukVv0Jf3WPK6DXSrjPT7Mm3ThIYB"
+    b"F2NSZ5cvzx3BxpIYaRAzZZKZ0VkANkvsO/5dYOaBOSlrtjWSFCaEtyT2QkjZQym7mYFuqoSr"
+    b"gRmJbceb1d10XMpmJDYtXW3oEh5Bv5t2meiqNkG6cE2o+EaAPTjb4tmImCacg4tRYG9S3R40"
+    b"jvIDhKonshlnOTJH/Oi2W7jmpY61rjsMan2X0CEUuEP8kCKuDm/J0p9E1+Y4X2Ukh/fFWGcv"
+    b"c1FiPxG/bVDeQFMzKsJDUu4uSVTYgrcqPphAFzAzoyIclvI7KlEf3Nl/OIHuAvzH+ZNEHxik"
+    b"Pp5rYkF32X1DDIPJ5+FFfyJRMP3GvSSNGP1lQpB0P2ODnaIZ+UHJZkJMYz9jmy7HNcx0iZLW"
+    b"fsYkTYsJ3b9J/R/4C673TQnRnTmBAAAAAElFTkSuQmCC"
+)
 
 
 def plugin(kernel, lifecycle):
@@ -42,9 +43,7 @@ def plugin(kernel, lifecycle):
         context = kernel.root
         _ = kernel.translation
 
-        @context.console_command(
-            "locale", output_type="locale", hidden=True
-        )
+        @context.console_command("locale", output_type="locale", hidden=True)
         def locale(channel, _, **kwargs):
             return "locale", "en"
 
@@ -65,9 +64,7 @@ def plugin(kernel, lifecycle):
             channel("locale changed from %s to %s" % (data, locale))
             return "locale", locale
 
-        @context.console_command(
-            "update", input_type="locale", hidden=True
-        )
+        @context.console_command("update", input_type="locale", hidden=True)
         def update_locale(channel, _, data=None, **kwargs):
             """
             This script updates the message.po structure with the original translation information.
@@ -79,9 +76,13 @@ def plugin(kernel, lifecycle):
             @return:
             """
             if data == "en":
-                channel("Cannot update English since it is the default language and has no file")
+                channel(
+                    "Cannot update English since it is the default language and has no file"
+                )
             keys = dict()
-            translations = open("./locale/%s/LC_MESSAGES/meerk40t.po" % data, "r", encoding="utf-8")
+            translations = open(
+                "./locale/%s/LC_MESSAGES/meerk40t.po" % data, "r", encoding="utf-8"
+            )
 
             file_lines = translations.readlines()
             key = None
@@ -101,25 +102,25 @@ def plugin(kernel, lifecycle):
             while index < len(file_lines):
                 try:
                     # Find msgid and all multi-lined message ids
-                    if re.match("msgid \"(.*)\"", file_lines[index]):
-                        m = re.match("msgid \"(.*)\"", file_lines[index])
+                    if re.match('msgid "(.*)"', file_lines[index]):
+                        m = re.match('msgid "(.*)"', file_lines[index])
                         key = m.group(1)
                         index += 1
                         if index >= len(file_lines):
                             break
-                        while re.match("^\"(.*)\"$", file_lines[index]):
-                            m = re.match("^\"(.*)\"$", file_lines[index])
+                        while re.match('^"(.*)"$', file_lines[index]):
+                            m = re.match('^"(.*)"$', file_lines[index])
                             key += m.group(1)
                             index += 1
 
                     # find all message strings and all multi-line message strings
-                    if re.match("msgstr \"(.*)\"", file_lines[index]):
-                        m = re.match("msgstr \"(.*)\"", file_lines[index])
+                    if re.match('msgstr "(.*)"', file_lines[index]):
+                        m = re.match('msgstr "(.*)"', file_lines[index])
                         value = [file_lines[index]]
                         if len(key) > 0:
                             keys[key] = value
                         index += 1
-                        while re.match("^\"(.*)\"$", file_lines[index]):
+                        while re.match('^"(.*)"$', file_lines[index]):
                             value.append(file_lines[index])
                             if len(key) > 0:
                                 keys[key] = value
@@ -151,12 +152,12 @@ def plugin(kernel, lifecycle):
             while index < len(file_lines):
                 try:
                     # Attempt to locate message id
-                    if re.match("msgid \"(.*)\"", file_lines[index]):
+                    if re.match('msgid "(.*)"', file_lines[index]):
                         lines.append(file_lines[index])
-                        m = re.match("msgid \"(.*)\"", file_lines[index])
+                        m = re.match('msgid "(.*)"', file_lines[index])
                         key = m.group(1)
                         index += 1
-                        while re.match("^\"(.*)\"$", file_lines[index]):
+                        while re.match('^"(.*)"$', file_lines[index]):
                             lines.append(file_lines[index])
                             key += m.group(1)
                             index += 1
@@ -164,16 +165,16 @@ def plugin(kernel, lifecycle):
                     pass
                 try:
                     # Attempt to locate message string
-                    if re.match("msgstr \"(.*)\"", file_lines[index]):
+                    if re.match('msgstr "(.*)"', file_lines[index]):
                         if key in keys:
                             lines.extend(keys[key])
                             index += 1
-                            while re.match("^\"(.*)\"$", file_lines[index]):
+                            while re.match('^"(.*)"$', file_lines[index]):
                                 index += 1
                         else:
                             lines.append(file_lines[index])
                             index += 1
-                            while re.match("^\"(.*)\"$", file_lines[index]):
+                            while re.match('^"(.*)"$', file_lines[index]):
                                 lines.append(file_lines[index])
                                 index += 1
                 except IndexError:
@@ -188,8 +189,10 @@ def plugin(kernel, lifecycle):
             filename = "meerk40t.update"
             channel("writing %s" % filename)
             import codecs
+
             template = codecs.open(filename, "w", "utf8")
             template.writelines(lines)
+
         try:
             kernel.register("window/Translate", PoboyFrame)
         except NameError:
@@ -206,7 +209,16 @@ class TranslationPanel(wx.Panel):
 
         sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.tree = wx.TreeCtrl(self, wx.ID_ANY, style=wx.TR_HAS_BUTTONS | wx.TR_HAS_VARIABLE_ROW_HEIGHT | wx.TR_HIDE_ROOT | wx.TR_NO_LINES | wx.TR_SINGLE | wx.TR_TWIST_BUTTONS)
+        self.tree = wx.TreeCtrl(
+            self,
+            wx.ID_ANY,
+            style=wx.TR_HAS_BUTTONS
+            | wx.TR_HAS_VARIABLE_ROW_HEIGHT
+            | wx.TR_HIDE_ROOT
+            | wx.TR_NO_LINES
+            | wx.TR_SINGLE
+            | wx.TR_TWIST_BUTTONS,
+        )
         sizer_1.Add(self.tree, 1, wx.EXPAND, 0)
 
         self.root = self.tree.AddRoot(_("Translation"))
@@ -220,13 +232,21 @@ class TranslationPanel(wx.Panel):
 
         self.tree.SetItemTextColour(self.issues, wx.Colour(127, 127, 0))
         self.warning_equal = self.tree.AppendItem(self.issues, _("msgid==msgstr"))
-        self.warning_start_capital = self.tree.AppendItem(self.issues, _("capitalization"))
-        self.warning_end_punct = self.tree.AppendItem(self.issues, _("ending punctuation"))
-        self.warning_end_space = self.tree.AppendItem(self.issues, _("ending whitespace"))
+        self.warning_start_capital = self.tree.AppendItem(
+            self.issues, _("capitalization")
+        )
+        self.warning_end_punct = self.tree.AppendItem(
+            self.issues, _("ending punctuation")
+        )
+        self.warning_end_space = self.tree.AppendItem(
+            self.issues, _("ending whitespace")
+        )
         self.warning_double_space = self.tree.AppendItem(self.issues, _("double space"))
 
         self.all = self.tree.AppendItem(self.workflow, _("All Translations"))
-        self.workflow_untranslated = self.tree.AppendItem(self.workflow, _("Untranslated"))
+        self.workflow_untranslated = self.tree.AppendItem(
+            self.workflow, _("Untranslated")
+        )
         self.workflow_translated = self.tree.AppendItem(self.workflow, _("Translated"))
 
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
@@ -237,25 +257,65 @@ class TranslationPanel(wx.Panel):
 
         sizer_2 = wx.BoxSizer(wx.VERTICAL)
 
-        self.text_comment = wx.TextCtrl(self.panel_entry, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
-        self.text_comment.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        self.text_comment = wx.TextCtrl(
+            self.panel_entry, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
+        )
+        self.text_comment.SetFont(
+            wx.Font(
+                15,
+                wx.FONTFAMILY_DEFAULT,
+                wx.FONTSTYLE_NORMAL,
+                wx.FONTWEIGHT_NORMAL,
+                0,
+                "Segoe UI",
+            )
+        )
         sizer_2.Add(self.text_comment, 3, wx.EXPAND, 0)
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_2.Add(sizer_3, 1, wx.EXPAND, 0)
 
         self.checkbox_1 = wx.CheckBox(self.panel_entry, wx.ID_ANY, _("Fuzzy"))
-        self.checkbox_1.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        self.checkbox_1.SetFont(
+            wx.Font(
+                15,
+                wx.FONTFAMILY_DEFAULT,
+                wx.FONTSTYLE_NORMAL,
+                wx.FONTWEIGHT_NORMAL,
+                0,
+                "Segoe UI",
+            )
+        )
         sizer_3.Add(self.checkbox_1, 0, 0, 0)
 
-        self.text_original_text = wx.TextCtrl(self.panel_entry, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
+        self.text_original_text = wx.TextCtrl(
+            self.panel_entry, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
+        )
         self.text_original_text.SetFont(
-            wx.Font(20, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+            wx.Font(
+                20,
+                wx.FONTFAMILY_DEFAULT,
+                wx.FONTSTYLE_NORMAL,
+                wx.FONTWEIGHT_NORMAL,
+                0,
+                "Segoe UI",
+            )
+        )
         sizer_2.Add(self.text_original_text, 6, wx.EXPAND, 0)
 
-        self.text_translated_text = wx.TextCtrl(self.panel_entry, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER)
+        self.text_translated_text = wx.TextCtrl(
+            self.panel_entry, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER
+        )
         self.text_translated_text.SetFont(
-            wx.Font(20, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+            wx.Font(
+                20,
+                wx.FONTFAMILY_DEFAULT,
+                wx.FONTSTYLE_NORMAL,
+                wx.FONTWEIGHT_NORMAL,
+                0,
+                "Segoe UI",
+            )
+        )
         sizer_2.Add(self.text_translated_text, 6, wx.EXPAND, 0)
 
         self.panel_entry.SetSizer(sizer_2)
@@ -280,12 +340,12 @@ class TranslationPanel(wx.Panel):
         default_dir = os.path.dirname(filename)
 
         with wx.FileDialog(
-                self,
-                _("Open"),
-                defaultDir=default_dir,
-                defaultFile=default_file,
-                wildcard="*.po",
-                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+            self,
+            _("Open"),
+            defaultDir=default_dir,
+            defaultFile=default_file,
+            wildcard="*.po",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
         ) as fileDialog:
             fileDialog.SetFilename(default_file)
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -295,10 +355,10 @@ class TranslationPanel(wx.Panel):
 
     def open_save_translation_dialog(self):
         with wx.FileDialog(
-                self,
-                _("Save Project"),
-                wildcard="*.po",
-                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            self,
+            _("Save Project"),
+            wildcard="*.po",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return  # the user changed their mind
@@ -314,12 +374,12 @@ class TranslationPanel(wx.Panel):
         default_dir = os.path.dirname(filename)
 
         with wx.FileDialog(
-                self,
-                _("Open"),
-                defaultDir=default_dir,
-                defaultFile=default_file,
-                wildcard="*.po",
-                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+            self,
+            _("Open"),
+            defaultDir=default_dir,
+            defaultFile=default_file,
+            wildcard="*.po",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
         ) as fileDialog:
             fileDialog.SetFilename(default_file)
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -328,9 +388,11 @@ class TranslationPanel(wx.Panel):
             self.panel.load_template_file(pathname)
 
     def open_load_sources_dialog(self):
-        dlg = wx.DirDialog(self,
-                           message="Choose python sources directory",
-                           style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        dlg = wx.DirDialog(
+            self,
+            message="Choose python sources directory",
+            style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST,
+        )
         if dlg.ShowModal() == wx.ID_OK:
             directory = os.path.abspath(dlg.GetPath())
             self.generate_from_python_sources(directory)
@@ -365,24 +427,24 @@ class TranslationPanel(wx.Panel):
                         index += 1
 
                 # find msgid and all multiline message ids
-                if re.match("msgid \"(.*)\"", file_lines[index]):
-                    m = re.match("msgid \"(.*)\"", file_lines[index])
+                if re.match('msgid "(.*)"', file_lines[index]):
+                    m = re.match('msgid "(.*)"', file_lines[index])
                     msgid = m.group(1)
                     index += 1
                     if index >= len(file_lines):
                         break
-                    while re.match("^\"(.*)\"$", file_lines[index]):
-                        m = re.match("^\"(.*)\"$", file_lines[index])
+                    while re.match('^"(.*)"$', file_lines[index]):
+                        m = re.match('^"(.*)"$', file_lines[index])
                         msgid += m.group(1)
                         index += 1
 
                 # find all message strings and all multi-line message strings
-                if re.match("msgstr \"(.*)\"", file_lines[index]):
-                    m = re.match("msgstr \"(.*)\"", file_lines[index])
+                if re.match('msgstr "(.*)"', file_lines[index]):
+                    m = re.match('msgstr "(.*)"', file_lines[index])
                     msgstr = m.group(1)
                     index += 1
-                    while re.match("^\"(.*)\"$", file_lines[index]):
-                        m = re.match("^\"(.*)\"$", file_lines[index])
+                    while re.match('^"(.*)"$', file_lines[index]):
+                        m = re.match('^"(.*)"$', file_lines[index])
                         msgstr += m.group(1)
                         index += 1
             except IndexError:
@@ -420,24 +482,24 @@ class TranslationPanel(wx.Panel):
                         index += 1
 
                 # find msgid and all multiline message ids
-                if re.match("msgid \"(.*)\"", file_lines[index]):
-                    m = re.match("msgid \"(.*)\"", file_lines[index])
+                if re.match('msgid "(.*)"', file_lines[index]):
+                    m = re.match('msgid "(.*)"', file_lines[index])
                     msgid = m.group(1)
                     index += 1
                     if index >= len(file_lines):
                         break
-                    while re.match("^\"(.*)\"$", file_lines[index]):
-                        m = re.match("^\"(.*)\"$", file_lines[index])
+                    while re.match('^"(.*)"$', file_lines[index]):
+                        m = re.match('^"(.*)"$', file_lines[index])
                         msgid += m.group(1)
                         index += 1
 
                 # find all message strings and all multi-line message strings
-                if re.match("msgstr \"(.*)\"", file_lines[index]):
-                    m = re.match("msgstr \"(.*)\"", file_lines[index])
+                if re.match('msgstr "(.*)"', file_lines[index]):
+                    m = re.match('msgstr "(.*)"', file_lines[index])
                     msgstr = m.group(1)
                     index += 1
-                    while re.match("^\"(.*)\"$", file_lines[index]):
-                        m = re.match("^\"(.*)\"$", file_lines[index])
+                    while re.match('^"(.*)"$', file_lines[index]):
+                        m = re.match('^"(.*)"$', file_lines[index])
                         msgstr += m.group(1)
                         index += 1
             except IndexError:
@@ -473,7 +535,7 @@ class TranslationPanel(wx.Panel):
         """
         for python_file in glob.glob("%s/**/*.py" % directory, recursive=True):
             file = open(python_file, "r", encoding="utf-8").read()
-            search = re.compile("_\([\"\']([^\"\']*)[\"\']\)")
+            search = re.compile("_\([\"']([^\"']*)[\"']\)")
             for m in search.findall(file):
                 self.add_entry(msgid=str(m))
         self.tree_rebuild_tree()
@@ -618,9 +680,7 @@ class TranslationPanel(wx.Panel):
 
     def on_tree_selection(self, event):
         try:
-            data = [
-                self.tree.GetItemData(item) for item in self.tree.GetSelections()
-            ]
+            data = [self.tree.GetItemData(item) for item in self.tree.GetSelections()]
             if len(data) > 0:
                 self.entry = data[0]
                 self.update_translation_values()
@@ -722,6 +782,7 @@ class PoboyFrame(wx.Frame):
 
 # end of class MyFrame
 
+
 class PoboyApp(wx.App):
     def OnInit(self):
         self.frame = PoboyFrame(None, wx.ID_ANY, "")
@@ -729,11 +790,14 @@ class PoboyApp(wx.App):
         self.frame.Show()
         return True
 
+
 # end of class MyApp
+
 
 def run():
     app = PoboyApp(0)
     app.MainLoop()
+
 
 if __name__ == "__main__":
     run()
