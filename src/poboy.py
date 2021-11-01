@@ -516,10 +516,12 @@ class TranslationPanel(wx.Panel):
                 comment = entry[0]
                 msgid = entry[1]
                 msgstr = entry[2]
-                items = entry[3]
-                save.write(comment)
-                save.write(msgid)
-                save.write(msgstr)
+                for line in comment.split('\n'):
+                    save.write("#%s\n" % line)
+
+                save.write('msgid "%s"\n' % msgid)
+                save.write('msgstr "%s"\n' % msgstr)
+                save.write('\n')
 
     def save_template_file(self, template_file):
         pass
