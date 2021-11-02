@@ -461,13 +461,14 @@ class TranslationPanel(wx.Panel):
         directory = None
         dlg = wx.DirDialog(
             self,
-            message="Choose python sources directory",
+            message=_("Choose python sources directory"),
             style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST,
         )
         if dlg.ShowModal() == wx.ID_OK:
             directory = os.path.abspath(dlg.GetPath())
-            self.project.generate(directory)
-            self.tree_rebuild_tree()
+            with wx.BusyInfo(_("Generating template from sources.")):
+                self.project.generate(directory)
+                self.tree_rebuild_tree()
         dlg.Destroy()
         return directory
 
