@@ -10,7 +10,6 @@
 """
 
 import re
-import time
 
 from cgi import parse_header
 from collections import OrderedDict
@@ -19,10 +18,12 @@ from difflib import get_close_matches
 from email import message_from_string
 from copy import copy
 
+from .core import Locale, UnknownLocaleError
 from .plurals import get_plural
 
 __all__ = ["Message", "Catalog", "TranslationError"]
 
+from .util import distinct, _cmp
 
 PYTHON_FORMAT = re.compile(
     r"""
@@ -38,39 +39,6 @@ PYTHON_FORMAT = re.compile(
     re.VERBOSE,
 )
 
-
-def _parse_datetime_header(value):
-    match = re.match(r"^(?P<datetime>.*?)(?P<tzoffset>[+-]\d{4})?$", value)
-
-    tt = time.strptime(match.group("datetime"), "%Y-%m-%d %H:%M")
-    ts = time.mktime(tt)
-    dt = datetime.fromtimestamp(ts)
-
-    # Separate the offset into a sign component, hours, and # minutes
-    tzoffset = match.group("tzoffset")
-    if tzoffset is not None:
-        plus_minus_s, rest = tzoffset[0], tzoffset[1:]
-        hours_offset_s, mins_offset_s = rest[:2], rest[2:]
-
-        # Make them all integers
-        plus_minus = int(plus_minus_s + "1")
-        hours_offset = int(hours_offset_s)
-        mins_offset = int(mins_offset_s)
-
-        # Calculate net offset
-        net_mins_offset = hours_offset * 60
-        net_mins_offset += mins_offset
-        net_mins_offset *= plus_minus
-
-        # Create an offset object
-        tzoffset = FixedOffsetTimezone(net_mins_offset)
-
-        # Store the offset in a datetime object
-        dt = dt.replace(tzinfo=tzoffset)
-
-    return dt
-
-
 class Message(object):
     """Representation of a single message in a catalog."""
 
@@ -85,6 +53,7 @@ class Message(object):
         previous_id=(),
         lineno=None,
         context=None,
+        items=None,
     ):
         """Create the message object.
 
@@ -120,6 +89,9 @@ class Message(object):
             self.previous_id = list(previous_id)
         self.lineno = lineno
         self.context = context
+        self.items = items
+        if self.items is None:
+            self.items = list()
 
     def __repr__(self):
         return "<%s %r (flags: %r)>" % (type(self).__name__, self.id, list(self.flags))
@@ -180,7 +152,7 @@ class Message(object):
         :see: `Catalog.check` for a way to perform checks for all messages
               in a catalog.
         """
-        from babel.messages.checkers import checkers
+        from .checkers import checkers
 
         errors = []
         for checker in checkers:
@@ -303,14 +275,10 @@ class Catalog(object):
         self.charset = charset or "utf-8"
 
         if creation_date is None:
-            creation_date = datetime.now(LOCALTZ)
-        elif isinstance(creation_date, datetime) and not creation_date.tzinfo:
-            creation_date = creation_date.replace(tzinfo=LOCALTZ)
+            creation_date = datetime.now()
         self.creation_date = creation_date
         if revision_date is None:
-            revision_date = "YEAR-MO-DA HO:MI+ZONE"
-        elif isinstance(revision_date, datetime) and not revision_date.tzinfo:
-            revision_date = revision_date.replace(tzinfo=LOCALTZ)
+            revision_date = datetime.now()
         self.revision_date = revision_date
         self.fuzzy = fuzzy
 
@@ -353,7 +321,7 @@ class Catalog(object):
 
     def _get_header_comment(self):
         comment = self._header_comment
-        year = datetime.now(LOCALTZ).strftime("%Y")
+        year = datetime.now().strftime("%Y")
         if hasattr(self.revision_date, "strftime"):
             year = self.revision_date.strftime("%Y")
         comment = (
@@ -418,16 +386,14 @@ class Catalog(object):
         headers.append(
             (
                 "POT-Creation-Date",
-                format_datetime(self.creation_date, "yyyy-MM-dd HH:mmZ", locale="en"),
+                "yyyy-MM-dd HH:mmZ".format(datetime.now()),
             )
         )
         if isinstance(self.revision_date, (datetime, time_, int, float)):
             headers.append(
                 (
                     "PO-Revision-Date",
-                    format_datetime(
-                        self.revision_date, "yyyy-MM-dd HH:mmZ", locale="en"
-                    ),
+                    "yyyy-MM-dd HH:mmZ".format(datetime.now()),
                 )
             )
         else:
@@ -449,7 +415,7 @@ class Catalog(object):
         headers.append(("MIME-Version", "1.0"))
         headers.append(("Content-Type", "text/plain; charset=%s" % self.charset))
         headers.append(("Content-Transfer-Encoding", "8bit"))
-        headers.append(("Generated-By", "Babel %s\n" % VERSION))
+        headers.append(("Generated-By", "Poboy %s\n" % "0.0.1"))
         return headers
 
     def _force_text(self, s, encoding="utf-8", errors="strict"):
@@ -484,12 +450,12 @@ class Catalog(object):
                 _, params = parse_header(" ;" + value)
                 self._num_plurals = int(params.get("nplurals", 2))
                 self._plural_expr = params.get("plural", "(n != 1)")
-            elif name == "pot-creation-date":
-                self.creation_date = _parse_datetime_header(value)
-            elif name == "po-revision-date":
-                # Keep the value if it's not the default one
-                if "YEAR" not in value:
-                    self.revision_date = _parse_datetime_header(value)
+            # elif name == "pot-creation-date":
+            #     self.creation_date = _parse_datetime_header(value)
+            # elif name == "po-revision-date":
+            #     # Keep the value if it's not the default one
+            #     if "YEAR" not in value:
+            #         self.revision_date = _parse_datetime_header(value)
 
     mime_headers = property(
         _get_mime_headers,
