@@ -11,7 +11,6 @@ from babelmsg import pofile, mofile, extract
 from wx.lib.embeddedimage import PyEmbeddedImage
 
 from src.babelmsg import Catalog
-from src.babelmsg.core import Locale
 
 PUNCTUATION = (".", "?", "!", ":", ";")
 TEMPLATE = ""
@@ -219,6 +218,8 @@ def plugin(kernel, lifecycle):
 def save(catalog, filename=None, write_mo=True):
     if filename is None:
         filename = catalog.filename
+    if filename is None:
+        raise FileNotFoundError
     with open(filename, "wb") as save:
         pofile.write_po(save, catalog)
     if filename.endswith(".pot") or not write_mo:
@@ -301,9 +302,9 @@ class TranslationPanel(wx.Panel):
             | wx.TR_SINGLE
             | wx.TR_TWIST_BUTTONS,
         )
+        self.root = self.tree.AddRoot(_("Project"))
         main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
-        self.root = self.tree.AddRoot(_("Project"))
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
 
         self.panel_message = wx.Panel(self, wx.ID_ANY)
@@ -398,7 +399,7 @@ class TranslationPanel(wx.Panel):
             pathname = fileDialog.GetPath()
             if not pathname.lower().endswith(".po"):
                 pathname += ".po"
-            save(self.selected_catalog)
+            save(self.selected_catalog, pathname)
             return pathname
 
     def open_save_template_dialog(self):
@@ -414,7 +415,6 @@ class TranslationPanel(wx.Panel):
             if not pathname.lower().endswith(".pot"):
                 pathname += ".pot"
             self.project.save(TEMPLATE, pathname)
-            self.project.save_template(pathname)
             return pathname
 
     def open_load_translation_dialog(self):
@@ -433,7 +433,7 @@ class TranslationPanel(wx.Panel):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return None
             pathname = fileDialog.GetPath()
-            self.project.load_translation(pathname)
+            self.project.load(pathname)
             self.tree_rebuild_tree()
             return pathname
 
@@ -453,7 +453,7 @@ class TranslationPanel(wx.Panel):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return None
             pathname = fileDialog.GetPath()
-            self.project.load_template(pathname)
+            self.project.load(pathname)
             self.tree_rebuild_tree()
             return pathname
 
@@ -466,7 +466,7 @@ class TranslationPanel(wx.Panel):
         )
         if dlg.ShowModal() == wx.ID_OK:
             directory = os.path.abspath(dlg.GetPath())
-            self.project.generate_template_from_python_package(directory)
+            self.project.generate(directory)
             self.tree_rebuild_tree()
         dlg.Destroy()
         return directory
@@ -481,7 +481,7 @@ class TranslationPanel(wx.Panel):
         dlg.SetValue("")
 
         if dlg.ShowModal() == wx.ID_OK:
-            self.project.init(Locale(str(dlg.GetValue())))
+            self.project.init(dlg.GetValue())
         dlg.Destroy()
         self.tree_rebuild_tree()
 
@@ -489,37 +489,25 @@ class TranslationPanel(wx.Panel):
         self.project.clear()
         self.tree_rebuild_tree()
 
-    #
-    # def load_translation_file(self, translation_file):
-    #     self.project.load_translation(translation_file)
-    #     self.tree_rebuild_tree()
-    #     self.tree.ExpandAll()
-    #
-    # def load_template_file(self, template_file):
-    #     self.project.load_template(template_file)
-    #     self.tree_rebuild_tree()
-    #     self.tree.ExpandAll()
-
     def try_save_working_file_translation(self):
         catalog = self.selected_catalog
-        filename = catalog.filename
-        if filename is None:
+        try:
+            self.project.save(catalog)
+        except:
             self.open_save_translation_dialog()
-        else:
-            self.project.save(catalog,filename)
 
     def try_save_working_file_template(self):
-        if self.project.template_file is None:
-            self.project.template_file = self.open_save_template_dialog()
-        else:
-            self.project.save_translation(self.project.template_file)
+        try:
+            self.project.save(TEMPLATE)
+        except:
+            self.open_save_template_dialog()
 
     def tree_clear_tree(self):
         self.tree.DeleteAllItems()
 
     def tree_rebuild_tree(self):
         tree = self.tree
-        tree.DeleteAllItems()
+        # tree.DeleteAllItems()
         try:
             catalog = self.project.catalogs[TEMPLATE]
             catalog.item = tree.AppendItem(self.root, _("Template"))
@@ -528,7 +516,7 @@ class TranslationPanel(wx.Panel):
                 name = msgid.strip()
                 if name == HEADER:
                     name = _("HEADER")
-                tree.AppendItem(catalog, name, data=(catalog, message))
+                message.item = tree.AppendItem(catalog.item, name, data=(catalog, message))
         except KeyError:
             pass
 
@@ -560,19 +548,19 @@ class TranslationPanel(wx.Panel):
                 catalog.warning_double_space = tree.AppendItem(catalog.issues, _("double space"))
 
                 catalog.workflow_untranslated = tree.AppendItem(
-                    catalog.translation, _("Untranslated")
+                    catalog.item, _("Untranslated")
                 )
                 catalog.workflow_translated = tree.AppendItem(
-                    catalog.translation, _("Translated")
+                    catalog.item, _("Translated")
                 )
-                catalog.workflow_all = tree.AppendItem(catalog.translation, _("All"))
+                catalog.workflow_all = tree.AppendItem(catalog.item, _("All"))
                 for message in catalog:
                     msgid = str(message.id)
                     name = msgid.strip()
                     if name == HEADER:
                         name = _("HEADER")
-                    tree.AppendItem(catalog.workflow_all, name, data=(catalog, message))
-                    self.message_revalidate(message)
+                    message.item = tree.AppendItem(catalog.workflow_all, name, data=(catalog, message))
+                    self.message_revalidate(catalog, message)
         tree.ExpandAll()
 
     def tree_move_to_next(self):
@@ -583,7 +571,7 @@ class TranslationPanel(wx.Panel):
         if t is None:
             return
         n = self.tree.GetNextSibling(t)
-        self.message_revalidate(self.selected_message)
+        self.message_revalidate(self.selected_catalog, self.selected_message)
         if n.IsOk():
             self.tree.SelectItem(n)
 
@@ -641,7 +629,7 @@ class TranslationPanel(wx.Panel):
             self.tree.Delete(item)
             items.remove(item)
         for item in adding:
-            items.append(self.tree.AppendItem(item, name, data=message))
+            items.append(self.tree.AppendItem(item, name, data=(catalog, message)))
 
     def message_classify(self, catalog, message):
         """
@@ -695,7 +683,7 @@ class TranslationPanel(wx.Panel):
 
     def on_tree_selection(self, event):
         try:
-            data = [self.tree.GetItemData(item) for item in self.tree.GetSelections()]
+            data = [self.tree.GetItemData(item) for item in self.tree.GetSelections() if self.tree.GetItemData(item) is not None]
             if len(data) > 0:
                 self.selected_catalog, self.selected_message = data[0]
                 self.update_gui_translation_pane()
@@ -713,8 +701,8 @@ class TranslationPanel(wx.Panel):
         t = None
         for item in list(self.tree.GetSelections()):
             t = self.tree.GetNextSibling(item)
-        if self.selected_message is not None:
-            self.message_revalidate(self.selected_message)
+        if self.selected_message is not None and self.selected_catalog is not None:
+            self.message_revalidate(self.selected_catalog, self.selected_message)
         if t is not None and t.IsOk():
             self.tree.SelectItem(t)
         self.text_translated_text.SetFocus()
