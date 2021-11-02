@@ -574,6 +574,14 @@ class TranslationPanel(wx.Panel):
                         name = _("HEADER")
                     message.item = tree.AppendItem(catalog.workflow_all, name, data=(catalog, message))
                     self.message_revalidate(catalog, message)
+                for m in catalog.obsolete:
+                    message = catalog.obsolete[m]
+                    msgid = str(message.id)
+                    name = msgid.strip()
+                    if name == HEADER:
+                        continue
+                    message.item = tree.AppendItem(catalog.workflow_obsolete, name, data=(catalog, message))
+                    # self.message_revalidate(catalog, message)
                 if self.template is not None:
                     for message in self.template:
                         msgid = str(message.id)
@@ -749,6 +757,24 @@ class TranslationPanel(wx.Panel):
         menu = wx.Menu()
         context = menu
         if data == "orphan":
+            def command(event):
+                for m in list(catalog._messages):
+                    message = catalog[m]
+                    parents = [self.tree.GetItemParent(item) for item in message.items]
+                    if catalog.workflow_orphans in parents:
+                        catalog.obsolete[m] = message
+                        del catalog[m]
+
+                        for item in message.items:
+                            self.tree.Delete(item)
+                        self.tree.Delete(message.item)
+
+                        message.item = self.tree.AppendItem(catalog.workflow_obsolete, m, data=(catalog,message))
+            self.Bind(
+                wx.EVT_MENU,
+                command,
+                context.Append(wx.ID_ANY, _("Obsolete Orphans"), "", wx.ITEM_NORMAL),
+            )
             def command(event):
                 for m in list(catalog._messages):
                     message = catalog[m]
