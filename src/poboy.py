@@ -10,7 +10,7 @@ import wx
 from babelmsg import pofile, mofile, extract
 from wx.lib.embeddedimage import PyEmbeddedImage
 
-from src.babelmsg import Catalog
+from src.babelmsg import Catalog, Message
 
 PUNCTUATION = (".", "?", "!", ":", ";")
 TEMPLATE = ""
@@ -303,6 +303,7 @@ class TranslationPanel(wx.Panel):
         main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
+        self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_tree_menu)
 
         self.panel_message = wx.Panel(self, wx.ID_ANY)
         main_sizer.Add(self.panel_message, 3, wx.EXPAND, 0)
@@ -525,47 +526,47 @@ class TranslationPanel(wx.Panel):
                 continue
             else:
                 catalog = self.project.catalogs[m]
-                catalog.item = tree.AppendItem(self.root, m)
+                catalog.item = tree.AppendItem(self.root, m, data=(catalog, "root"))
                 if str(catalog.locale) != m:
-                    catalog.item = tree.AppendItem(catalog.item, _("%s, locale != directory") % str(catalog.locale))
+                    catalog.item = tree.AppendItem(catalog.item, _("%s, locale != directory") % str(catalog.locale), data=(catalog, "catalog_error"))
                     tree.SetItemTextColour(catalog.item, wx.RED)
 
-                catalog.errors = tree.AppendItem(catalog.item, _("Errors"))
+                catalog.errors = tree.AppendItem(catalog.item, _("Errors"), data=(catalog, "errors"))
                 tree.SetItemTextColour(catalog.errors, wx.RED)
 
-                catalog.error_printf = tree.AppendItem(catalog.errors, _("printf-tokens"))
+                catalog.error_printf = tree.AppendItem(catalog.errors, _("printf-tokens"), data=(catalog, "error-printf"))
 
-                catalog.issues = tree.AppendItem(catalog.item, _("Issues"))
+                catalog.issues = tree.AppendItem(catalog.item, _("Issues"), data=(catalog, "issues"))
                 tree.SetItemTextColour(catalog.issues, wx.Colour(127, 127, 0))
 
-                catalog.warning_equal = tree.AppendItem(catalog.issues, _("msgid==msgstr"))
+                catalog.warning_equal = tree.AppendItem(catalog.issues, _("msgid==msgstr"), data=(catalog, "issue-equal"))
                 catalog.warning_start_capital = tree.AppendItem(
-                    catalog.issues, _("capitalization")
+                    catalog.issues, _("capitalization"), data=(catalog, "issue-capitals")
                 )
                 catalog.warning_end_punct = tree.AppendItem(
-                    catalog.issues, _("ending punctuation")
+                    catalog.issues, _("ending punctuation"), data=(catalog, "issue-punctuation")
                 )
                 catalog.warning_end_space = tree.AppendItem(
-                    catalog.issues, _("ending whitespace")
+                    catalog.issues, _("ending whitespace"), data=(catalog, "issue-ending-whitespace")
                 )
-                catalog.warning_double_space = tree.AppendItem(catalog.issues, _("double space"))
+                catalog.warning_double_space = tree.AppendItem(catalog.issues, _("double space"), data=(catalog, "issue-double-space"))
 
                 catalog.workflow_obsolete = tree.AppendItem(
-                    catalog.item, _("Obsolete")
+                    catalog.item, _("Obsolete"), data=(catalog, "obsolete")
                 )
                 catalog.workflow_orphans = tree.AppendItem(
-                    catalog.item, _("Orphans")
+                    catalog.item, _("Orphans"), data=(catalog, "orphan")
                 )
                 catalog.workflow_new = tree.AppendItem(
-                    catalog.item, _("New")
+                    catalog.item, _("New"), data=(catalog, "new")
                 )
                 catalog.workflow_untranslated = tree.AppendItem(
-                    catalog.item, _("Untranslated")
+                    catalog.item, _("Untranslated"), data=(catalog, "untranslated")
                 )
                 catalog.workflow_translated = tree.AppendItem(
-                    catalog.item, _("Translated")
+                    catalog.item, _("Translated"), data=(catalog, "translated")
                 )
-                catalog.workflow_all = tree.AppendItem(catalog.item, _("All"))
+                catalog.workflow_all = tree.AppendItem(catalog.item, _("All"), data=(catalog, "all"))
                 for message in catalog:
                     msgid = str(message.id)
                     name = msgid.strip()
@@ -710,15 +711,59 @@ class TranslationPanel(wx.Panel):
             self.text_comment.SetValue("\n".join(comments))
             self.text_original_text.SetValue(str(msgid))
             self.text_translated_text.SetValue(str(msgstr))
+            self.text_comment.Enable(True)
+            self.text_original_text.Enable(True)
+            self.text_translated_text.Enable(True)
+        else:
+            self.text_comment.SetValue("")
+            self.text_original_text.SetValue("")
+            self.text_translated_text.SetValue("")
+            self.text_comment.Enable(False)
+            self.text_original_text.Enable(False)
+            self.text_translated_text.Enable(False)
 
     def on_tree_selection(self, event):
         try:
             data = [self.tree.GetItemData(item) for item in self.tree.GetSelections() if self.tree.GetItemData(item) is not None]
+            print(data)
             if len(data) > 0:
-                self.selected_catalog, self.selected_message = data[0]
+                catalog, info = data[0]
+                self.selected_catalog = catalog
+                if isinstance(info, str):
+                    self.selected_message = None
+                else:
+                    self.selected_message = info
                 self.update_gui_translation_pane()
         except RuntimeError:
             pass
+
+
+    def on_tree_menu(self, event):
+        item = event.GetItem()
+        if item is None:
+            return
+        catalog, data = self.tree.GetItemData(item)
+        if not isinstance(data, str):
+            return
+        menu = wx.Menu()
+        context = menu
+        if data == "orphan":
+            def command(event):
+                for m in list(catalog._messages):
+                    message = catalog[m]
+                    if catalog.workflow_orphans in message.items:
+                        for item in message.items:
+                            self.tree.Delete(item)
+                        del catalog[m]
+            self.Bind(
+                wx.EVT_MENU,
+                command,
+                context.Append(wx.ID_ANY, _("Delete Orphans"), "", wx.ITEM_NORMAL),
+            )
+
+        if menu.MenuItemCount != 0:
+            self.PopupMenu(menu)
+            menu.Destroy()
 
     def on_text_translated(self, event):  # wxGlade: TranslationPanel.<event_handler>
         if self.selected_message:
