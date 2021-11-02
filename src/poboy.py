@@ -270,12 +270,9 @@ class TranslationProject:
         translate.fuzzy = False
         self.catalogs[locale] = translate
 
-    def load(self, filename):
+    def load(self, filename, locale=None):
         catalog = load(filename)
-        locale = catalog.locale
-        if locale is None:
-            locale = TEMPLATE
-        self.catalogs[str(locale)] = catalog
+        self.catalogs[locale] = catalog
 
     def save(self, locale:str, filename:str=None):
         catalog = self.catalogs[locale]
@@ -449,13 +446,13 @@ class TranslationPanel(wx.Panel):
 
     def load_all_translations(self, locale_directory):
         directories = [item for item in os.listdir(locale_directory)]
-        directories = [os.path.join(locale_directory, item) for item in directories]
-        directories = [item for item in directories if os.path.isdir(item)]
-        for directory in directories:
+        directories = [(item, os.path.join(locale_directory, item)) for item in directories]
+        directories = [item for item in directories if os.path.isdir(item[1])]
+        for basedir, directory in directories:
             for path, dirs, files in os.walk(directory):
                 for file in files:
                     if file.endswith(".po"):
-                        self.project.load(os.path.join(path, file))
+                        self.project.load(os.path.join(path, file), locale=basedir)
 
     def open_generate_from_sources_dialog(self):
         directory = None
@@ -527,6 +524,9 @@ class TranslationPanel(wx.Panel):
             else:
                 catalog = self.project.catalogs[m]
                 catalog.item = tree.AppendItem(self.root, m)
+                if str(catalog.locale) != m:
+                    catalog.item = tree.AppendItem(catalog.item, _("%s, locale != directory") % str(catalog.locale))
+                    tree.SetItemTextColour(catalog.item, wx.RED)
 
                 catalog.errors = tree.AppendItem(catalog.item, _("Errors"))
                 tree.SetItemTextColour(catalog.errors, wx.RED)
