@@ -22,6 +22,9 @@ This file is a result of some work with MeerK40t and a desire to provide a built
 
 While this was originally written for use within that program it became quickly clear that this program work would benefit other especially since a reduce set of the same features would still result in a very nice PO file editor. So there is considerable utility to this as a standalone program. Also, with the MeerK40t plugin system there is no actual need for this program to be directly included into the larger source.
 
+It also became quite clear that the needed functionality for the message extraction and catalog reading was well done within the `babel` project however directly including this as a requirement would also require `pytz` as a requirement and nothing about the messages functionality depended on that code. So there is a hard fork at python-babel/2.9.1 of the messages code. And edits made to just this part of the functionality.
+
+
 ## Goals
 
 While the current goal is to work for the original purpose considerable work will go into making this work generic po-editing applications. This should be considered a stand-alone application but the feature set will be strongly geared towards it's use within MeerK40t.
@@ -31,3 +34,41 @@ While the current goal is to work for the original purpose considerable work wil
 We will not dive too deeply into the highly specific work of the very fine details, but providing the broader strokes of giving the users methods for dealing with these details.
 
 We will do everything we can to help make this and our own job easier.
+
+## Acknowledgments
+
+The bablemsg package is hard forked from https://github.com/python-babel/babel
+
+
+```
+Copyright (c) 2013-2021 by the Babel Team, see AUTHORS for more information.
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+ 3. The name of the author may not be used to endorse or promote
+    products derived from this software without specific prior
+    written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
