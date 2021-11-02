@@ -502,12 +502,9 @@ class TranslationPanel(wx.Panel):
         except:
             self.open_save_template_dialog()
 
-    def tree_clear_tree(self):
-        self.tree.DeleteAllItems()
-
     def tree_rebuild_tree(self):
         tree = self.tree
-        # tree.DeleteAllItems()
+        tree.DeleteChildren(self.root)
         try:
             catalog = self.project.catalogs[TEMPLATE]
             catalog.item = tree.AppendItem(self.root, _("Template"))
@@ -674,10 +671,15 @@ class TranslationPanel(wx.Panel):
         message = self.selected_message
 
         if message is not None:
-            comment = message.auto_comments
             msgid = message.id
+            if msgid is None:
+                msgid = ""
             msgstr = message.string
-            self.text_comment.SetValue(str(comment))
+            if msgstr is None:
+                msgstr = ""
+            comments = list(message.auto_comments)
+            comments.extend(message.user_comments)
+            self.text_comment.SetValue("\n".join(comments))
             self.text_original_text.SetValue(str(msgid))
             self.text_translated_text.SetValue(str(msgstr))
 
