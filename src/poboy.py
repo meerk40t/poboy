@@ -233,7 +233,7 @@ def save(catalog, filename=None, write_mo=True):
 def load(filename):
     with open(filename, "r", encoding="utf-8") as file:
         catalog = pofile.read_po(file)
-        catalog.filename = file
+        catalog.filename = filename
         return catalog
 
 def generate_catalog_from_python_package(sources_directory):
