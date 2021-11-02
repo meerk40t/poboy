@@ -309,7 +309,7 @@ class Catalog(object):
         )
         for m in self._messages:
             message = self._messages[m]
-            self[message.id] = message.clone()
+            c[message.id] = message.clone()
         return c
 
     def _set_locale(self, locale):
@@ -356,9 +356,7 @@ class Catalog(object):
             .replace("YEAR", year)
             .replace("ORGANIZATION", self.copyright_holder)
         )
-        locale_name = (
-            self.locale.english_name if self.locale else self.locale_identifier
-        )
+        locale_name = str(self.locale)
         if locale_name:
             comment = comment.replace(
                 "Translations template", "%s translations" % locale_name

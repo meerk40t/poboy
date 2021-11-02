@@ -1,0 +1,177 @@
+# de translations for PROJECT.
+# Copyright (C) 2021 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2021.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: yyyy-MM-dd HH:mmZ\n"
+"PO-Revision-Date: yyyy-MM-dd HH:mmZ\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: de\n"
+"Language-Team: de <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Poboy 0.0.1\n"
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:291
+msgid "Project"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:293
+msgid "Template"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:294
+msgid "Translation"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:295
+msgid "Errors"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:296
+msgid "Issues"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:299
+msgid "printf-tokens"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:302
+msgid "msgid==msgstr"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:304
+msgid "capitalization"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:307
+msgid "ending punctuation"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:310
+msgid "ending whitespace"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:312
+msgid "double space"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:315
+msgid "Untranslated"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:317
+msgid "Translated"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:318
+msgid "All"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:346
+msgid "Fuzzy"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:405
+msgid "Save Translation"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:420
+msgid "Save Template"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:440
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:458
+msgid "Open"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:489
+msgid "Provide the Translation locale"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:490
+msgid "Initializing Template"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:549
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:557
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:609
+msgid "HEADER"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:724
+msgid "New\tCtrl+N"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:726
+msgid "Open Translation\tCtrl+O"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:728
+msgid "Open Template\tCtrl+Shift+O"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:730
+msgid "Open Sources\tAlt+O"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:732
+msgid "Save Translation\tCtrl+S"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:734
+msgid "Save Template\tCtrl+Shift+S"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:736
+msgid "Save Translation as"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:738
+msgid "Save Template as"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:740
+msgid "File"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:743
+msgid "Start Translation\tCtrl+T"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:745
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:755
+msgid "Next Message\tCtrl+Down"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:747
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:757
+msgid "Copy Source\tAlt+Down"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:749
+msgid "Translations"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:753
+msgid "Previous Message\tCtrl+Up"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:759
+msgid "Navigate"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:769
+msgid "POboy"
+msgstr ""
+
+#: C:/Users/Tat/PycharmProjects/poboy/src/poboy.py:843
+msgid "Languages"
+msgstr ""
+

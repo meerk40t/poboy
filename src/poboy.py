@@ -494,8 +494,8 @@ class TranslationPanel(wx.Panel):
 
         if dlg.ShowModal() == wx.ID_OK:
             self.project.init(Locale(str(dlg.GetValue())))
-        dlg.ShowModal()
         dlg.Destroy()
+        self.tree_rebuild_tree()
 
 
     def clear_project(self):
