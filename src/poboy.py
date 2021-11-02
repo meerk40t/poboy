@@ -690,6 +690,7 @@ class TranslationPanel(wx.Panel):
             classes.append(catalog.error_printf)
         elif ("%d" in msgid) != ("%d" in msgstr):
             classes.append(catalog.error_printf)
+
         if msgid[0].isupper() != msgstr[0].isupper():
             classes.append(catalog.warning_start_capital)
         if "  " in msgstr and "  " not in msgid:
@@ -751,7 +752,8 @@ class TranslationPanel(wx.Panel):
             def command(event):
                 for m in list(catalog._messages):
                     message = catalog[m]
-                    if catalog.workflow_orphans in message.items:
+                    parents = [self.tree.GetItemParent(item) for item in message.items]
+                    if catalog.workflow_orphans in parents:
                         for item in message.items:
                             self.tree.Delete(item)
                         del catalog[m]
