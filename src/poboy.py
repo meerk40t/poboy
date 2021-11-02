@@ -210,6 +210,115 @@ def plugin(kernel, lifecycle):
             pass
 
 
+class TranslationProject:
+    def __init__(self):
+        self.working_source_files = None
+        self.working_template_file = None
+        self.working_translation_file = None
+
+        self.entries = []
+
+    def append(self, comment=None, msgid=None, msgstr=None):
+        self.entries.append((comment, msgid, msgstr, list()))
+
+    def clear(self):
+        self.entries.clear()
+
+    def load_translation(self, translation_file):
+        self.load_po(translation_file)
+
+    def load_template(self, template_file):
+        self.load_po(template_file)
+
+    def load_po(self, translation_file):
+        self.translations = open(translation_file, "r", encoding="utf-8")
+        translations = self.translations
+
+        file_lines = translations.readlines()
+        index = 0
+        while index < len(file_lines):
+            comment = ""
+            msgid = ""
+            msgstr = ""
+            try:
+                # Find comments and all multiline comments
+                if re.match("^#(.*)$", file_lines[index]):
+                    m = re.match("^#(.*)$", file_lines[index])
+                    comment = m.group(1)
+                    index += 1
+                    if index >= len(file_lines):
+                        break
+                    while re.match("^#(.*)$", file_lines[index]):
+                        m = re.match("^#(.*)$", file_lines[index])
+                        comment += m.group(1)
+                        index += 1
+
+                # find msgid and all multiline message ids
+                if re.match('msgid "(.*)"', file_lines[index]):
+                    m = re.match('msgid "(.*)"', file_lines[index])
+                    msgid = m.group(1)
+                    index += 1
+                    if index >= len(file_lines):
+                        break
+                    while re.match('^"(.*)"$', file_lines[index]):
+                        m = re.match('^"(.*)"$', file_lines[index])
+                        msgid += m.group(1)
+                        index += 1
+
+                # find all message strings and all multi-line message strings
+                if re.match('msgstr "(.*)"', file_lines[index]):
+                    m = re.match('msgstr "(.*)"', file_lines[index])
+                    msgstr = m.group(1)
+                    index += 1
+                    while re.match('^"(.*)"$', file_lines[index]):
+                        m = re.match('^"(.*)"$', file_lines[index])
+                        msgstr += m.group(1)
+                        index += 1
+            except IndexError:
+                break
+            if len(comment) or len(msgid) or len(msgstr):
+                msgid = msgid.replace("\\n", "\n")
+                msgstr = msgstr.replace("\\n", "\n")
+                self.append(comment=comment, msgid=msgid, msgstr=msgstr)
+            index += 1
+
+    def generate_from_python_directory(self, sources_directory):
+        """
+        This will later be replaced with internal parsing of the python files.
+
+        :param directory:
+        :return:
+        """
+        # TODO: Respect .gitignore values
+        for python_file in glob.glob("%s/**/*.py" % sources_directory, recursive=True):
+            file = open(python_file, "r", encoding="utf-8").read()
+            search = re.compile("_\([\"']([^\"']*)[\"']\)")
+            for m in search.findall(file):
+                self.append(msgid=str(m))
+
+    def save_translation(self, translation_file):
+        self.save_po(translation_file)
+
+    def save_template(self, template_file):
+        self.save_po(template_file)
+
+    def save_po(self, translation_file):
+        with open(translation_file, "w", encoding="utf-8") as save:
+            for entry in self.entries:
+                comment = entry[0]
+                msgid = entry[1]
+                msgstr = entry[2]
+                for line in comment.split('\n'):
+                    save.write("#%s\n" % line)
+
+                save.write('msgid "%s"\n' % msgid)
+                save.write('msgstr "%s"\n' % msgstr)
+                save.write('\n')
+
+    def save_mo(self, compiled_file_name):
+        pass
+
+
 class TranslationPanel(wx.Panel):
     def __init__(self, *args, **kwds):
         kwds["style"] = kwds.get("style", 0) | wx.TAB_TRAVERSAL
@@ -339,7 +448,7 @@ class TranslationPanel(wx.Panel):
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_enter, self.text_translated_text)
         self.text_translated_text.SetFocus()
         # end wxGlade
-        self.entries = []
+        self.project = TranslationProject()
         self.entry = None
 
     def open_load_translation_dialog(self, filename=None):
@@ -408,131 +517,21 @@ class TranslationPanel(wx.Panel):
         dlg.Destroy()
 
     def clear_project(self):
-        self.entries.clear()
+        self.project.clear()
         self.tree_rebuild_tree()
 
     def load_translation_file(self, translation_file):
-        self.translations = open(translation_file, "r", encoding="utf-8")
-        translations = self.translations
-        self.clear_project()
-
-        file_lines = translations.readlines()
-        index = 0
-        while index < len(file_lines):
-            comment = ""
-            msgid = ""
-            msgstr = ""
-            try:
-                # Find comments and all multiline comments
-                if re.match("^#(.*)$", file_lines[index]):
-                    m = re.match("^#(.*)$", file_lines[index])
-                    comment = m.group(1)
-                    index += 1
-                    if index >= len(file_lines):
-                        break
-                    while re.match("^#(.*)$", file_lines[index]):
-                        m = re.match("^#(.*)$", file_lines[index])
-                        comment += m.group(1)
-                        index += 1
-
-                # find msgid and all multiline message ids
-                if re.match('msgid "(.*)"', file_lines[index]):
-                    m = re.match('msgid "(.*)"', file_lines[index])
-                    msgid = m.group(1)
-                    index += 1
-                    if index >= len(file_lines):
-                        break
-                    while re.match('^"(.*)"$', file_lines[index]):
-                        m = re.match('^"(.*)"$', file_lines[index])
-                        msgid += m.group(1)
-                        index += 1
-
-                # find all message strings and all multi-line message strings
-                if re.match('msgstr "(.*)"', file_lines[index]):
-                    m = re.match('msgstr "(.*)"', file_lines[index])
-                    msgstr = m.group(1)
-                    index += 1
-                    while re.match('^"(.*)"$', file_lines[index]):
-                        m = re.match('^"(.*)"$', file_lines[index])
-                        msgstr += m.group(1)
-                        index += 1
-            except IndexError:
-                break
-            if len(comment) or len(msgid) or len(msgstr):
-                msgid = msgid.replace("\\n", "\n")
-                msgstr = msgstr.replace("\\n", "\n")
-                self.entries.append([comment, msgid, msgstr, list()])
-            index += 1
+        self.project.load_translation(translation_file)
         self.tree_rebuild_tree()
         self.tree.ExpandAll()
 
-    def load_template_file(self, translation_file):
-        self.translations = open(translation_file, "r", encoding="utf-8")
-        translations = self.translations
-        self.clear_project()
-
-        file_lines = translations.readlines()
-        index = 0
-        while index < len(file_lines):
-            comment = ""
-            msgid = ""
-            msgstr = ""
-            try:
-                # Find comments and all multiline comments
-                if re.match("^#(.*)$", file_lines[index]):
-                    m = re.match("^#(.*)$", file_lines[index])
-                    comment = m.group(1)
-                    index += 1
-                    if index >= len(file_lines):
-                        break
-                    while re.match("^#(.*)$", file_lines[index]):
-                        m = re.match("^#(.*)$", file_lines[index])
-                        comment += m.group(1)
-                        index += 1
-
-                # find msgid and all multiline message ids
-                if re.match('msgid "(.*)"', file_lines[index]):
-                    m = re.match('msgid "(.*)"', file_lines[index])
-                    msgid = m.group(1)
-                    index += 1
-                    if index >= len(file_lines):
-                        break
-                    while re.match('^"(.*)"$', file_lines[index]):
-                        m = re.match('^"(.*)"$', file_lines[index])
-                        msgid += m.group(1)
-                        index += 1
-
-                # find all message strings and all multi-line message strings
-                if re.match('msgstr "(.*)"', file_lines[index]):
-                    m = re.match('msgstr "(.*)"', file_lines[index])
-                    msgstr = m.group(1)
-                    index += 1
-                    while re.match('^"(.*)"$', file_lines[index]):
-                        m = re.match('^"(.*)"$', file_lines[index])
-                        msgstr += m.group(1)
-                        index += 1
-            except IndexError:
-                break
-            if len(comment) or len(msgid) or len(msgstr):
-                msgid = msgid.replace("\\n", "\n")
-                msgstr = msgstr.replace("\\n", "\n")
-                self.entries.append([comment, msgid, msgstr, list()])
-            index += 1
+    def load_template_file(self, template_file):
+        self.project.load_template(template_file)
         self.tree_rebuild_tree()
         self.tree.ExpandAll()
 
     def save_translation_file(self, translation_file):
-        with open(translation_file, "w", encoding="utf-8") as save:
-            for entry in self.entries:
-                comment = entry[0]
-                msgid = entry[1]
-                msgstr = entry[2]
-                for line in comment.split('\n'):
-                    save.write("#%s\n" % line)
-
-                save.write('msgid "%s"\n' % msgid)
-                save.write('msgstr "%s"\n' % msgstr)
-                save.write('\n')
+        self.project.save_translation(translation_file)
 
     def save_template_file(self, template_file):
         pass
@@ -544,11 +543,7 @@ class TranslationPanel(wx.Panel):
         :param directory:
         :return:
         """
-        for python_file in glob.glob("%s/**/*.py" % directory, recursive=True):
-            file = open(python_file, "r", encoding="utf-8").read()
-            search = re.compile("_\([\"']([^\"']*)[\"']\)")
-            for m in search.findall(file):
-                self.add_entry(msgid=str(m))
+        self.project.generate_from_python_directory(directory)
         self.tree_rebuild_tree()
 
     def tree_clear_tree(self):
@@ -564,7 +559,7 @@ class TranslationPanel(wx.Panel):
 
     def tree_rebuild_tree(self):
         self.tree_clear_tree()
-        for entry in self.entries:
+        for entry in self.project.entries:
             msgid = entry[1]
             name = msgid.strip()
             if name == "":
