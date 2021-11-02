@@ -22,7 +22,7 @@ from os.path import relpath
 import sys
 from tokenize import generate_tokens, COMMENT, NAME, OP, STRING
 
-from babel.util import parse_encoding, parse_future_flags, pathmatch
+from .util import parse_encoding, parse_future_flags, pathmatch
 from textwrap import dedent
 
 

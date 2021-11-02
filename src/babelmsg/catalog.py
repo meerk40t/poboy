@@ -19,11 +19,7 @@ from difflib import get_close_matches
 from email import message_from_string
 from copy import copy
 
-from babel import __version__ as VERSION
-from babel.core import Locale, UnknownLocaleError
-from babel.dates import format_datetime
-from babel.messages.plurals import get_plural
-from babel.util import distinct, LOCALTZ, FixedOffsetTimezone, _cmp
+from .plurals import get_plural
 
 __all__ = ['Message', 'Catalog', 'TranslationError']
 

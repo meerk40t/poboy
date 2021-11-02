@@ -12,7 +12,7 @@
 import array
 import struct
 
-from babel.messages.catalog import Catalog, Message
+from .catalog import Catalog, Message
 
 
 LE_MAGIC = 0x950412de
@@ -108,7 +108,7 @@ def write_mo(fileobj, catalog, use_fuzzy=False):
     format.
 
     >>> import sys
-    >>> from babel.messages import Catalog
+    >>> from poboy.babelmsg import Catalog
     >>> from gettext import GNUTranslations
     >>> from io import BytesIO
 

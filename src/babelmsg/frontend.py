@@ -23,14 +23,11 @@ from datetime import datetime
 from io import StringIO
 from locale import getpreferredencoding
 
-from babel import __version__ as VERSION
-from babel import Locale, localedata
-from babel.core import UnknownLocaleError
-from babel.messages.catalog import Catalog
-from babel.messages.extract import DEFAULT_KEYWORDS, DEFAULT_MAPPING, check_and_call_extract_file, extract_from_dir
-from babel.messages.mofile import write_mo
-from babel.messages.pofile import read_po, write_po
-from babel.util import LOCALTZ
+
+from .catalog import Catalog
+from .extract import DEFAULT_KEYWORDS, DEFAULT_MAPPING, check_and_call_extract_file, extract_from_dir
+from .mofile import write_mo
+from .pofile import read_po, write_po
 from distutils import log as distutils_log
 from distutils.cmd import Command as _Command
 from distutils.errors import DistutilsOptionError, DistutilsSetupError
@@ -615,7 +612,7 @@ class init_catalog(Command):
             catalog = read_po(infile, locale=self.locale)
 
         catalog.locale = self._locale
-        catalog.revision_date = datetime.now(LOCALTZ)
+        catalog.revision_date = datetime.now()
         catalog.fuzzy = False
 
         with open(self.output_file, 'wb') as outfile:

@@ -10,12 +10,11 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import print_function
 import os
 import re
 
-from babel.messages.catalog import Catalog, Message
-from babel.util import wraptext, _cmp
+from .catalog import Catalog, Message
+from .util import wraptext, _cmp
 
 
 def unescape(string):
@@ -125,7 +124,6 @@ class _NormalizedString(object):
 
     def __ne__(self, other):
         return self.__cmp__(other) != 0
-
 
 
 class PoFileParser(object):
