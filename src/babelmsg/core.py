@@ -242,10 +242,7 @@ class Locale(object):
         """
         if identifier is None:
             return None
-        elif isinstance(identifier, Locale):
-            return identifier
-        elif not isinstance(identifier, str):
-            raise TypeError("Unexpected value for identifier: %r" % (identifier,))
+        identifier = str(identifier)
 
         parts = parse_locale(identifier, sep=sep)
         input_id = get_locale_identifier(parts)

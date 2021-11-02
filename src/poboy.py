@@ -278,6 +278,29 @@ class TranslationProject:
         catalog = self.catalogs[locale]
         save(catalog, filename)
 
+    def load_all_translations(self, locale_directory):
+        directories = [item for item in os.listdir(locale_directory)]
+        directories = [(item, os.path.join(locale_directory, item)) for item in directories]
+        directories = [item for item in directories if os.path.isdir(item[1])]
+        for basedir, directory in directories:
+            for path, dirs, files in os.walk(directory):
+                for file in files:
+                    if file.endswith(".po"):
+                        self.load(os.path.join(path, file), locale=basedir)
+
+    def calculate_updates(self):
+        template = self.catalogs[TEMPLATE]
+        if template is None:
+            return
+        for message in template:
+            msgid = str(message.id)
+            name = msgid.strip()
+            if name == HEADER:
+                continue
+            for catalog in self.catalogs.values():
+                if msgid not in catalog._messages:
+                    catalog.new[msgid] = message.clone()
+
     def generate(self, sources_directory):
         catalog = generate_catalog_from_python_package(sources_directory)
         self.catalogs[TEMPLATE] = catalog
@@ -446,16 +469,6 @@ class TranslationPanel(wx.Panel):
             self.tree_rebuild_tree()
             return pathname
 
-    def load_all_translations(self, locale_directory):
-        directories = [item for item in os.listdir(locale_directory)]
-        directories = [(item, os.path.join(locale_directory, item)) for item in directories]
-        directories = [item for item in directories if os.path.isdir(item[1])]
-        for basedir, directory in directories:
-            for path, dirs, files in os.walk(directory):
-                for file in files:
-                    if file.endswith(".po"):
-                        self.project.load(os.path.join(path, file), locale=basedir)
-
     def open_generate_from_sources_dialog(self):
         directory = None
         dlg = wx.DirDialog(
@@ -469,7 +482,8 @@ class TranslationPanel(wx.Panel):
                 self.project.generate(directory)
                 locale_directory = os.path.join(directory,"locale")
                 if os.path.exists(locale_directory):
-                    self.load_all_translations(locale_directory)
+                    self.project.load_all_translations(locale_directory)
+                self.project.calculate_updates()
                 self.tree_rebuild_tree()
         dlg.Destroy()
         return directory
@@ -582,14 +596,14 @@ class TranslationPanel(wx.Panel):
                         continue
                     message.item = tree.AppendItem(catalog.workflow_obsolete, name, data=(catalog, message))
                     # self.message_revalidate(catalog, message)
-                if self.template is not None:
-                    for message in self.template:
-                        msgid = str(message.id)
-                        name = msgid.strip()
-                        if name == HEADER:
-                            continue
-                        if msgid not in catalog._messages:
-                            message.items.append(tree.AppendItem(catalog.workflow_new, name, data=(catalog, message)))
+                for m in catalog.new:
+                    message = catalog.new[m]
+                    msgid = str(message.id)
+                    name = msgid.strip()
+                    if name == HEADER:
+                        continue
+                    message.item = tree.AppendItem(catalog.workflow_new, name, data=(catalog, message))
+                    # self.message_revalidate(catalog, message)
         tree.ExpandAll()
 
     def tree_move_to_next(self):
@@ -746,7 +760,6 @@ class TranslationPanel(wx.Panel):
         except RuntimeError:
             pass
 
-
     def on_tree_menu(self, event):
         item = event.GetItem()
         if item is None:
@@ -788,7 +801,17 @@ class TranslationPanel(wx.Panel):
                 command,
                 context.Append(wx.ID_ANY, _("Delete Orphans"), "", wx.ITEM_NORMAL),
             )
-
+        if data == "new":
+            def command(event):
+                newcatalog = catalog.clone()
+                newcatalog._messages.clear()
+                newcatalog._messages.update(catalog.new)
+                save(newcatalog, "patch.po", write_mo=False)
+            self.Bind(
+                wx.EVT_MENU,
+                command,
+                context.Append(wx.ID_ANY, _("Save as patch.po"), "", wx.ITEM_NORMAL),
+            )
         if menu.MenuItemCount != 0:
             self.PopupMenu(menu)
             menu.Destroy()

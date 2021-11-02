@@ -283,8 +283,10 @@ class Catalog(object):
             revision_date = datetime.now()
         self.revision_date = revision_date
         self.fuzzy = fuzzy
+
         self.filename = filename
 
+        self.new = OrderedDict() # Dictionary of new messages from template
         self.obsolete = OrderedDict()  # Dictionary of obsolete messages
         self._num_plurals = None
         self._plural_expr = None
