@@ -734,11 +734,7 @@ class PoboyWindow(wx.Frame):
 
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("New\tCtrl+N"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_new, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Open Translation\tCtrl+O"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_open_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Open Template\tCtrl+Shift+O"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_open_template, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Open Sources\tAlt+O"), "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Open Project Directory\tCtrl+O"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_open_sources, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Translation\tCtrl+S"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_translation, item)
@@ -780,12 +776,6 @@ class PoboyWindow(wx.Frame):
 
     def on_menu_new(self, event):
         self.panel.clear_project()
-
-    def on_menu_open_translation(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.panel.open_load_translation_dialog()
-
-    def on_menu_open_template(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.panel.open_load_template_dialog()
 
     def on_menu_open_sources(self, event):
         self.panel.open_generate_from_sources_dialog()
