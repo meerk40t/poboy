@@ -26,43 +26,52 @@ from .util import parse_encoding, parse_future_flags, pathmatch
 from textwrap import dedent
 
 
-GROUP_NAME = 'babel.extractors'
+GROUP_NAME = "babel.extractors"
 
 DEFAULT_KEYWORDS = {
-    '_': None,
-    'gettext': None,
-    'ngettext': (1, 2),
-    'ugettext': None,
-    'ungettext': (1, 2),
-    'dgettext': (2,),
-    'dngettext': (2, 3),
-    'N_': None,
-    'pgettext': ((1, 'c'), 2),
-    'npgettext': ((1, 'c'), 2, 3)
+    "_": None,
+    "gettext": None,
+    "ngettext": (1, 2),
+    "ugettext": None,
+    "ungettext": (1, 2),
+    "dgettext": (2,),
+    "dngettext": (2, 3),
+    "N_": None,
+    "pgettext": ((1, "c"), 2),
+    "npgettext": ((1, "c"), 2, 3),
 }
 
-DEFAULT_MAPPING = [('**.py', 'python')]
+DEFAULT_MAPPING = [("**.py", "python")]
 
 empty_msgid_warning = (
     '%s: warning: Empty msgid.  It is reserved by GNU gettext: gettext("") '
-    'returns the header entry with meta information, not the empty string.')
+    "returns the header entry with meta information, not the empty string."
+)
 
 
 def _strip_comment_tags(comments, tags):
     """Helper function for `extract` that strips comment tags from strings
     in a list of comment lines.  This functions operates in-place.
     """
+
     def _strip(line):
         for tag in tags:
             if line.startswith(tag):
-                return line[len(tag):].strip()
+                return line[len(tag) :].strip()
         return line
+
     comments[:] = map(_strip, comments)
 
 
-def extract_from_dir(dirname=None, method_map=DEFAULT_MAPPING,
-                     options_map=None, keywords=DEFAULT_KEYWORDS,
-                     comment_tags=(), callback=None, strip_comment_tags=False):
+def extract_from_dir(
+    dirname=None,
+    method_map=DEFAULT_MAPPING,
+    options_map=None,
+    keywords=DEFAULT_KEYWORDS,
+    comment_tags=(),
+    callback=None,
+    strip_comment_tags=False,
+):
     """Extract messages from any source files found in the given directory.
 
     This function generates tuples of the form ``(filename, lineno, message,
@@ -137,13 +146,14 @@ def extract_from_dir(dirname=None, method_map=DEFAULT_MAPPING,
     absname = os.path.abspath(dirname)
     for root, dirnames, filenames in os.walk(absname):
         dirnames[:] = [
-            subdir for subdir in dirnames
-            if not (subdir.startswith('.') or subdir.startswith('_'))
+            subdir
+            for subdir in dirnames
+            if not (subdir.startswith(".") or subdir.startswith("_"))
         ]
         dirnames.sort()
         filenames.sort()
         for filename in filenames:
-            filepath = os.path.join(root, filename).replace(os.sep, '/')
+            filepath = os.path.join(root, filename).replace(os.sep, "/")
 
             for message_tuple in check_and_call_extract_file(
                 filepath,
@@ -158,9 +168,16 @@ def extract_from_dir(dirname=None, method_map=DEFAULT_MAPPING,
                 yield message_tuple
 
 
-def check_and_call_extract_file(filepath, method_map, options_map,
-                                callback, keywords, comment_tags,
-                                strip_comment_tags, dirpath=None):
+def check_and_call_extract_file(
+    filepath,
+    method_map,
+    options_map,
+    callback,
+    keywords,
+    comment_tags,
+    strip_comment_tags,
+    dirpath=None,
+):
     """Checks if the given file matches an extraction method mapping, and if so, calls extract_from_file.
 
     Note that the extraction method mappings are based relative to dirpath.
@@ -204,19 +221,26 @@ def check_and_call_extract_file(filepath, method_map, options_map,
         if callback:
             callback(filename, method, options)
         for message_tuple in extract_from_file(
-            method, filepath,
+            method,
+            filepath,
             keywords=keywords,
             comment_tags=comment_tags,
             options=options,
-            strip_comment_tags=strip_comment_tags
+            strip_comment_tags=strip_comment_tags,
         ):
-            yield (filename, ) + message_tuple
+            yield (filename,) + message_tuple
 
         break
 
 
-def extract_from_file(method, filename, keywords=DEFAULT_KEYWORDS,
-                      comment_tags=(), options=None, strip_comment_tags=False):
+def extract_from_file(
+    method,
+    filename,
+    keywords=DEFAULT_KEYWORDS,
+    comment_tags=(),
+    options=None,
+    strip_comment_tags=False,
+):
     """Extract messages from a specific file.
 
     This function returns a list of tuples of the form ``(lineno, message, comments, context)``.
@@ -235,16 +259,25 @@ def extract_from_file(method, filename, keywords=DEFAULT_KEYWORDS,
     :returns: list of tuples of the form ``(lineno, message, comments, context)``
     :rtype: list[tuple[int, str|tuple[str], list[str], str|None]
     """
-    if method == 'ignore':
+    if method == "ignore":
         return []
 
-    with open(filename, 'rb') as fileobj:
-        return list(extract(method, fileobj, keywords, comment_tags,
-                            options, strip_comment_tags))
+    with open(filename, "rb") as fileobj:
+        return list(
+            extract(
+                method, fileobj, keywords, comment_tags, options, strip_comment_tags
+            )
+        )
 
 
-def extract(method, fileobj, keywords=DEFAULT_KEYWORDS, comment_tags=(),
-            options=None, strip_comment_tags=False):
+def extract(
+    method,
+    fileobj,
+    keywords=DEFAULT_KEYWORDS,
+    comment_tags=(),
+    options=None,
+    strip_comment_tags=False,
+):
     """Extract messages from the given file-like object using the specified
     extraction method.
 
@@ -287,12 +320,12 @@ def extract(method, fileobj, keywords=DEFAULT_KEYWORDS, comment_tags=(),
     func = None
     if callable(method):
         func = method
-    elif ':' in method or '.' in method:
-        if ':' not in method:
-            lastdot = method.rfind('.')
-            module, attrname = method[:lastdot], method[lastdot + 1:]
+    elif ":" in method or "." in method:
+        if ":" not in method:
+            lastdot = method.rfind(".")
+            module, attrname = method[:lastdot], method[lastdot + 1 :]
         else:
-            module, attrname = method.split(':', 1)
+            module, attrname = method.split(":", 1)
         func = getattr(__import__(module, {}, {}, [attrname]), attrname)
     else:
         try:
@@ -300,8 +333,7 @@ def extract(method, fileobj, keywords=DEFAULT_KEYWORDS, comment_tags=(),
         except ImportError:
             pass
         else:
-            for entry_point in working_set.iter_entry_points(GROUP_NAME,
-                                                             method):
+            for entry_point in working_set.iter_entry_points(GROUP_NAME, method):
                 func = entry_point.load(require=True)
                 break
         if func is None:
@@ -309,17 +341,16 @@ def extract(method, fileobj, keywords=DEFAULT_KEYWORDS, comment_tags=(),
             # (see #230), we resort to looking up the builtin extractors
             # directly
             builtin = {
-                'ignore': extract_nothing,
-                'python': extract_python,
-                'javascript': extract_javascript
+                "ignore": extract_nothing,
+                "python": extract_python,
+                "javascript": extract_javascript,
             }
             func = builtin.get(method)
 
     if func is None:
-        raise ValueError('Unknown extraction method %r' % method)
+        raise ValueError("Unknown extraction method %r" % method)
 
-    results = func(fileobj, keywords.keys(), comment_tags,
-                   options=options or {})
+    results = func(fileobj, keywords.keys(), comment_tags, options=options or {})
 
     for lineno, funcname, messages, comments in results:
         if funcname:
@@ -361,9 +392,11 @@ def extract(method, fileobj, keywords=DEFAULT_KEYWORDS, comment_tags=(),
             first_msg_index = spec[0] - 1
         if not messages[first_msg_index]:
             # An empty string msgid isn't valid, emit a warning
-            where = '%s:%i' % (hasattr(fileobj, 'name') and
-                               fileobj.name or '(unknown)', lineno)
-            sys.stderr.write((empty_msgid_warning % where) + '\n')
+            where = "%s:%i" % (
+                hasattr(fileobj, "name") and fileobj.name or "(unknown)",
+                lineno,
+            )
+            sys.stderr.write((empty_msgid_warning % where) + "\n")
             continue
 
         messages = tuple(msgs)
@@ -405,15 +438,15 @@ def extract_python(fileobj, keywords, comment_tags, options):
     in_def = in_translator_comments = False
     comment_tag = None
 
-    encoding = parse_encoding(fileobj) or options.get('encoding', 'UTF-8')
+    encoding = parse_encoding(fileobj) or options.get("encoding", "UTF-8")
     future_flags = parse_future_flags(fileobj, encoding)
     next_line = lambda: fileobj.readline().decode(encoding)
 
     tokens = generate_tokens(next_line)
     for tok, value, (lineno, _), _, _ in tokens:
-        if call_stack == -1 and tok == NAME and value in ('def', 'class'):
+        if call_stack == -1 and tok == NAME and value in ("def", "class"):
             in_def = True
-        elif tok == OP and value == '(':
+        elif tok == OP and value == "(":
             if in_def:
                 # Avoid false positives for declarations such as:
                 # def gettext(arg='message'):
@@ -422,15 +455,14 @@ def extract_python(fileobj, keywords, comment_tags, options):
             if funcname:
                 message_lineno = lineno
                 call_stack += 1
-        elif in_def and tok == OP and value == ':':
+        elif in_def and tok == OP and value == ":":
             # End of a class definition without parens
             in_def = False
             continue
         elif call_stack == -1 and tok == COMMENT:
             # Strip the comment token from the line
             value = value[1:].strip()
-            if in_translator_comments and \
-                    translator_comments[-1][0] == lineno - 1:
+            if in_translator_comments and translator_comments[-1][0] == lineno - 1:
                 # We're already inside a translator comment, continue appending
                 translator_comments.append((lineno, value))
                 continue
@@ -442,10 +474,10 @@ def extract_python(fileobj, keywords, comment_tags, options):
                     translator_comments.append((lineno, value))
                     break
         elif funcname and call_stack == 0:
-            nested = (tok == NAME and value in keywords)
-            if (tok == OP and value == ')') or nested:
+            nested = tok == NAME and value in keywords
+            if (tok == OP and value == ")") or nested:
                 if buf:
-                    messages.append(''.join(buf))
+                    messages.append("".join(buf))
                     del buf[:]
                 else:
                     messages.append(None)
@@ -456,12 +488,18 @@ def extract_python(fileobj, keywords, comment_tags, options):
                     messages = messages[0]
                 # Comments don't apply unless they immediately preceed the
                 # message
-                if translator_comments and \
-                        translator_comments[-1][0] < message_lineno - 1:
+                if (
+                    translator_comments
+                    and translator_comments[-1][0] < message_lineno - 1
+                ):
                     translator_comments = []
 
-                yield (message_lineno, funcname, messages,
-                       [comment[1] for comment in translator_comments])
+                yield (
+                    message_lineno,
+                    funcname,
+                    messages,
+                    [comment[1] for comment in translator_comments],
+                )
 
                 funcname = lineno = message_lineno = None
                 call_stack = -1
@@ -475,13 +513,17 @@ def extract_python(fileobj, keywords, comment_tags, options):
                 # encoding
                 # https://sourceforge.net/tracker/?func=detail&atid=355470&
                 # aid=617979&group_id=5470
-                code = compile('# coding=%s\n%s' % (str(encoding), value),
-                               '<string>', 'eval', future_flags)
-                value = eval(code, {'__builtins__': {}}, {})
+                code = compile(
+                    "# coding=%s\n%s" % (str(encoding), value),
+                    "<string>",
+                    "eval",
+                    future_flags,
+                )
+                value = eval(code, {"__builtins__": {}}, {})
                 buf.append(value)
-            elif tok == OP and value == ',':
+            elif tok == OP and value == ",":
                 if buf:
-                    messages.append(''.join(buf))
+                    messages.append("".join(buf))
                     del buf[:]
                 else:
                     messages.append(None)
@@ -492,7 +534,7 @@ def extract_python(fileobj, keywords, comment_tags, options):
                     # for the comment to still be a valid one
                     old_lineno, old_comment = translator_comments.pop()
                     translator_comments.append((old_lineno + 1, old_comment))
-        elif call_stack > 0 and tok == OP and value == ')':
+        elif call_stack > 0 and tok == OP and value == ")":
             call_stack -= 1
         elif funcname and call_stack == -1:
             funcname = None
@@ -516,41 +558,42 @@ def extract_javascript(fileobj, keywords, comment_tags, options):
                                            template string support.
     """
     from babel.messages.jslexer import Token, tokenize, unquote_string
+
     funcname = message_lineno = None
     messages = []
     last_argument = None
     translator_comments = []
     concatenate_next = False
-    encoding = options.get('encoding', 'utf-8')
+    encoding = options.get("encoding", "utf-8")
     last_token = None
     call_stack = -1
-    dotted = any('.' in kw for kw in keywords)
+    dotted = any("." in kw for kw in keywords)
 
     for token in tokenize(
         fileobj.read().decode(encoding),
         jsx=options.get("jsx", True),
         template_string=options.get("template_string", True),
-        dotted=dotted
+        dotted=dotted,
     ):
         if (  # Turn keyword`foo` expressions into keyword("foo") calls:
-            funcname and  # have a keyword...
-            (last_token and last_token.type == 'name') and  # we've seen nothing after the keyword...
-            token.type == 'template_string'  # this is a template string
+            funcname
+            and (last_token and last_token.type == "name")  # have a keyword...
+            and token.type  # we've seen nothing after the keyword...
+            == "template_string"  # this is a template string
         ):
             message_lineno = token.lineno
             messages = [unquote_string(token.value)]
             call_stack = 0
-            token = Token('operator', ')', token.lineno)
+            token = Token("operator", ")", token.lineno)
 
-        if token.type == 'operator' and token.value == '(':
+        if token.type == "operator" and token.value == "(":
             if funcname:
                 message_lineno = token.lineno
                 call_stack += 1
 
-        elif call_stack == -1 and token.type == 'linecomment':
+        elif call_stack == -1 and token.type == "linecomment":
             value = token.value[2:].strip()
-            if translator_comments and \
-               translator_comments[-1][0] == token.lineno - 1:
+            if translator_comments and translator_comments[-1][0] == token.lineno - 1:
                 translator_comments.append((token.lineno, value))
                 continue
 
@@ -559,7 +602,7 @@ def extract_javascript(fileobj, keywords, comment_tags, options):
                     translator_comments.append((token.lineno, value.strip()))
                     break
 
-        elif token.type == 'multilinecomment':
+        elif token.type == "multilinecomment":
             # only one multi-line comment may preceed a translation
             translator_comments = []
             value = token.value[2:-2].strip()
@@ -568,14 +611,13 @@ def extract_javascript(fileobj, keywords, comment_tags, options):
                     lines = value.splitlines()
                     if lines:
                         lines[0] = lines[0].strip()
-                        lines[1:] = dedent('\n'.join(lines[1:])).splitlines()
+                        lines[1:] = dedent("\n".join(lines[1:])).splitlines()
                         for offset, line in enumerate(lines):
-                            translator_comments.append((token.lineno + offset,
-                                                        line))
+                            translator_comments.append((token.lineno + offset, line))
                     break
 
         elif funcname and call_stack == 0:
-            if token.type == 'operator' and token.value == ')':
+            if token.type == "operator" and token.value == ")":
                 if last_argument is not None:
                     messages.append(last_argument)
                 if len(messages) > 1:
@@ -587,13 +629,19 @@ def extract_javascript(fileobj, keywords, comment_tags, options):
 
                 # Comments don't apply unless they immediately precede the
                 # message
-                if translator_comments and \
-                   translator_comments[-1][0] < message_lineno - 1:
+                if (
+                    translator_comments
+                    and translator_comments[-1][0] < message_lineno - 1
+                ):
                     translator_comments = []
 
                 if messages is not None:
-                    yield (message_lineno, funcname, messages,
-                           [comment[1] for comment in translator_comments])
+                    yield (
+                        message_lineno,
+                        funcname,
+                        messages,
+                        [comment[1] for comment in translator_comments],
+                    )
 
                 funcname = message_lineno = last_argument = None
                 concatenate_next = False
@@ -601,36 +649,41 @@ def extract_javascript(fileobj, keywords, comment_tags, options):
                 messages = []
                 call_stack = -1
 
-            elif token.type in ('string', 'template_string'):
+            elif token.type in ("string", "template_string"):
                 new_value = unquote_string(token.value)
                 if concatenate_next:
-                    last_argument = (last_argument or '') + new_value
+                    last_argument = (last_argument or "") + new_value
                     concatenate_next = False
                 else:
                     last_argument = new_value
 
-            elif token.type == 'operator':
-                if token.value == ',':
+            elif token.type == "operator":
+                if token.value == ",":
                     if last_argument is not None:
                         messages.append(last_argument)
                         last_argument = None
                     else:
                         messages.append(None)
                     concatenate_next = False
-                elif token.value == '+':
+                elif token.value == "+":
                     concatenate_next = True
 
-        elif call_stack > 0 and token.type == 'operator' \
-                and token.value == ')':
+        elif call_stack > 0 and token.type == "operator" and token.value == ")":
             call_stack -= 1
 
         elif funcname and call_stack == -1:
             funcname = None
 
-        elif call_stack == -1 and token.type == 'name' and \
-            token.value in keywords and \
-            (last_token is None or last_token.type != 'name' or
-             last_token.value != 'function'):
+        elif (
+            call_stack == -1
+            and token.type == "name"
+            and token.value in keywords
+            and (
+                last_token is None
+                or last_token.type != "name"
+                or last_token.value != "function"
+            )
+        ):
             funcname = token.value
 
         last_token = token

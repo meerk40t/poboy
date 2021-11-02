@@ -36,9 +36,11 @@ def distinct(iterable):
             yield item
             seen.add(item)
 
+
 # Regexp to match python magic encoding line
 PYTHON_MAGIC_COMMENT_re = re.compile(
-    br'[ \t\f]* \# .* coding[=:][ \t]*([-\w.]+)', re.VERBOSE)
+    br"[ \t\f]* \# .* coding[=:][ \t]*([-\w.]+)", re.VERBOSE
+)
 
 
 def parse_encoding(fp):
@@ -58,13 +60,14 @@ def parse_encoding(fp):
         line1 = fp.readline()
         has_bom = line1.startswith(codecs.BOM_UTF8)
         if has_bom:
-            line1 = line1[len(codecs.BOM_UTF8):]
+            line1 = line1[len(codecs.BOM_UTF8) :]
 
         m = PYTHON_MAGIC_COMMENT_re.match(line1)
         if not m:
             try:
                 import ast
-                ast.parse(line1.decode('latin-1'))
+
+                ast.parse(line1.decode("latin-1"))
             except (ImportError, SyntaxError, UnicodeEncodeError):
                 # Either it's a real syntax error, in which case the source is
                 # not valid python source, or line2 is a continuation of line1,
@@ -77,29 +80,29 @@ def parse_encoding(fp):
 
         if has_bom:
             if m:
-                magic_comment_encoding = m.group(1).decode('latin-1')
-                if magic_comment_encoding != 'utf-8':
+                magic_comment_encoding = m.group(1).decode("latin-1")
+                if magic_comment_encoding != "utf-8":
                     raise SyntaxError(
-                        'encoding problem: {0} with BOM'.format(
-                            magic_comment_encoding))
-            return 'utf-8'
+                        "encoding problem: {0} with BOM".format(magic_comment_encoding)
+                    )
+            return "utf-8"
         elif m:
-            return m.group(1).decode('latin-1')
+            return m.group(1).decode("latin-1")
         else:
             return None
     finally:
         fp.seek(pos)
 
 
-PYTHON_FUTURE_IMPORT_re = re.compile(
-    r'from\s+__future__\s+import\s+\(*(.+)\)*')
+PYTHON_FUTURE_IMPORT_re = re.compile(r"from\s+__future__\s+import\s+\(*(.+)\)*")
 
 
-def parse_future_flags(fp, encoding='latin-1'):
+def parse_future_flags(fp, encoding="latin-1"):
     """Parse the compiler flags by :mod:`__future__` from the given Python
     code.
     """
     import __future__
+
     pos = fp.tell()
     fp.seek(0)
     flags = 0
@@ -110,14 +113,14 @@ def parse_future_flags(fp, encoding='latin-1'):
         # This will likely do untoward things if the source code itself is broken.
 
         # (1) Fix `import (\n...` to be `import (...`.
-        body = re.sub(r'import\s*\([\r\n]+', 'import (', body)
+        body = re.sub(r"import\s*\([\r\n]+", "import (", body)
         # (2) Join line-ending commas with the next line.
-        body = re.sub(r',\s*[\r\n]+', ', ', body)
+        body = re.sub(r",\s*[\r\n]+", ", ", body)
         # (3) Remove backslash line continuations.
-        body = re.sub(r'\\\s*[\r\n]+', ' ', body)
+        body = re.sub(r"\\\s*[\r\n]+", " ", body)
 
         for m in PYTHON_FUTURE_IMPORT_re.finditer(body):
-            names = [x.strip().strip('()') for x in m.group(1).split(',')]
+            names = [x.strip().strip("()") for x in m.group(1).split(",")]
             for name in names:
                 feature = getattr(__future__, name, None)
                 if feature:
@@ -166,40 +169,39 @@ def pathmatch(pattern, filename):
     :param filename: the path name of the file to match against
     """
     symbols = {
-        '?': '[^/]',
-        '?/': '[^/]/',
-        '*': '[^/]+',
-        '*/': '[^/]+/',
-        '**/': '(?:.+/)*?',
-        '**': '(?:.+/)*?[^/]+',
+        "?": "[^/]",
+        "?/": "[^/]/",
+        "*": "[^/]+",
+        "*/": "[^/]+/",
+        "**/": "(?:.+/)*?",
+        "**": "(?:.+/)*?[^/]+",
     }
 
-    if pattern.startswith('^'):
-        buf = ['^']
+    if pattern.startswith("^"):
+        buf = ["^"]
         pattern = pattern[1:]
-    elif pattern.startswith('./'):
-        buf = ['^']
+    elif pattern.startswith("./"):
+        buf = ["^"]
         pattern = pattern[2:]
     else:
         buf = []
 
-    for idx, part in enumerate(re.split('([?*]+/?)', pattern)):
+    for idx, part in enumerate(re.split("([?*]+/?)", pattern)):
         if idx % 2:
             buf.append(symbols[part])
         elif part:
             buf.append(re.escape(part))
-    match = re.match(''.join(buf) + '$', filename.replace(os.sep, '/'))
+    match = re.match("".join(buf) + "$", filename.replace(os.sep, "/"))
     return match is not None
 
 
 class TextWrapper(textwrap.TextWrapper):
     wordsep_re = re.compile(
-        r'(\s+|'                                  # any whitespace
-        r'(?<=[\w\!\"\'\&\.\,\?])-{2,}(?=\w))'    # em-dash
+        r"(\s+|" r"(?<=[\w\!\"\'\&\.\,\?])-{2,}(?=\w))"  # any whitespace  # em-dash
     )
 
 
-def wraptext(text, width=70, initial_indent='', subsequent_indent=''):
+def wraptext(text, width=70, initial_indent="", subsequent_indent=""):
     """Simple wrapper around the ``textwrap.wrap`` function in the standard
     library. This version does not wrap lines on hyphens in words.
 
@@ -210,9 +212,12 @@ def wraptext(text, width=70, initial_indent='', subsequent_indent=''):
     :param subsequent_indent: string that will be prepended to all lines save
                               the first of wrapped output
     """
-    wrapper = TextWrapper(width=width, initial_indent=initial_indent,
-                          subsequent_indent=subsequent_indent,
-                          break_long_words=False)
+    wrapper = TextWrapper(
+        width=width,
+        initial_indent=initial_indent,
+        subsequent_indent=subsequent_indent,
+        break_long_words=False,
+    )
     return wrapper.wrap(text)
 
 

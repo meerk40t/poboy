@@ -9,4 +9,4 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from babel.messages.catalog import *
+from .catalog import *

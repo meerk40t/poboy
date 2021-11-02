@@ -15,19 +15,14 @@ from .catalog import TranslationError, PYTHON_FORMAT
 
 
 #: list of format chars that are compatible to each other
-_string_format_compatibilities = [
-    {'i', 'd', 'u'},
-    {'x', 'X'},
-    {'f', 'F', 'g', 'G'}
-]
+_string_format_compatibilities = [{"i", "d", "u"}, {"x", "X"}, {"f", "F", "g", "G"}]
 
 
 def num_plurals(catalog, message):
     """Verify the number of plurals in the translation."""
     if not message.pluralizable:
         if not isinstance(message.string, str):
-            raise TranslationError("Found plural forms for non-pluralizable "
-                                   "message")
+            raise TranslationError("Found plural forms for non-pluralizable " "message")
         return
 
     # skip further tests if no catalog is provided.
@@ -38,13 +33,14 @@ def num_plurals(catalog, message):
     if not isinstance(msgstrs, (list, tuple)):
         msgstrs = (msgstrs,)
     if len(msgstrs) != catalog.num_plurals:
-        raise TranslationError("Wrong number of plural forms (expected %d)" %
-                               catalog.num_plurals)
+        raise TranslationError(
+            "Wrong number of plural forms (expected %d)" % catalog.num_plurals
+        )
 
 
 def python_format(catalog, message):
     """Verify the format string placeholders in the translation."""
-    if 'python-format' not in message.flags:
+    if "python-format" not in message.flags:
         return
     msgids = message.id
     if not isinstance(msgids, (list, tuple)):
@@ -94,7 +90,7 @@ def _validate_format(format, alternative):
         result = []
         for match in PYTHON_FORMAT.finditer(string):
             name, format, typechar = match.groups()
-            if typechar == '%' and name is None:
+            if typechar == "%" and name is None:
                 continue
             result.append((name, str(typechar)))
         return result
@@ -114,8 +110,9 @@ def _validate_format(format, alternative):
                 positional = name is None
             else:
                 if (name is None) != positional:
-                    raise TranslationError('format string mixes positional '
-                                           'and named placeholders')
+                    raise TranslationError(
+                        "format string mixes positional " "and named placeholders"
+                    )
         return bool(positional)
 
     a, b = map(_parse, (format, alternative))
@@ -123,21 +120,21 @@ def _validate_format(format, alternative):
     # now check if both strings are positional or named
     a_positional, b_positional = map(_check_positional, (a, b))
     if a_positional and not b_positional and not b:
-        raise TranslationError('placeholders are incompatible')
+        raise TranslationError("placeholders are incompatible")
     elif a_positional != b_positional:
-        raise TranslationError('the format strings are of different kinds')
+        raise TranslationError("the format strings are of different kinds")
 
     # if we are operating on positional strings both must have the
     # same number of format chars and those must be compatible
     if a_positional:
         if len(a) != len(b):
-            raise TranslationError('positional format placeholders are '
-                                   'unbalanced')
+            raise TranslationError("positional format placeholders are " "unbalanced")
         for idx, ((_, first), (_, second)) in enumerate(zip(a, b)):
             if not _compatible(first, second):
-                raise TranslationError('incompatible format for placeholder '
-                                       '%d: %r and %r are not compatible' %
-                                       (idx + 1, first, second))
+                raise TranslationError(
+                    "incompatible format for placeholder "
+                    "%d: %r and %r are not compatible" % (idx + 1, first, second)
+                )
 
     # otherwise the second string must not have names the first one
     # doesn't have and the types of those included must be compatible
@@ -145,12 +142,13 @@ def _validate_format(format, alternative):
         type_map = dict(a)
         for name, typechar in b:
             if name not in type_map:
-                raise TranslationError('unknown named placeholder %r' % name)
+                raise TranslationError("unknown named placeholder %r" % name)
             elif not _compatible(typechar, type_map[name]):
-                raise TranslationError('incompatible format for '
-                                       'placeholder %r: '
-                                       '%r and %r are not compatible' %
-                                       (name, typechar, type_map[name]))
+                raise TranslationError(
+                    "incompatible format for "
+                    "placeholder %r: "
+                    "%r and %r are not compatible" % (name, typechar, type_map[name])
+                )
 
 
 def _find_checkers():
@@ -160,7 +158,7 @@ def _find_checkers():
     except ImportError:
         pass
     else:
-        for entry_point in working_set.iter_entry_points('babel.checkers'):
+        for entry_point in working_set.iter_entry_points("babel.checkers"):
             checkers.append(entry_point.load())
     if len(checkers) == 0:
         # if pkg_resources is not available or no usable egg-info was found

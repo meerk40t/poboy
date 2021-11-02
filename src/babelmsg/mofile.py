@@ -15,8 +15,8 @@ import struct
 from .catalog import Catalog, Message
 
 
-LE_MAGIC = 0x950412de
-BE_MAGIC = 0xde120495
+LE_MAGIC = 0x950412DE
+BE_MAGIC = 0xDE120495
 
 
 def read_mo(fileobj):
@@ -32,7 +32,7 @@ def read_mo(fileobj):
     catalog = Catalog()
     headers = {}
 
-    filename = getattr(fileobj, 'name', '')
+    filename = getattr(fileobj, "name", "")
 
     buf = fileobj.read()
     buflen = len(buf)
@@ -40,28 +40,28 @@ def read_mo(fileobj):
 
     # Parse the .mo file header, which consists of 5 little endian 32
     # bit words.
-    magic = unpack('<I', buf[:4])[0]  # Are we big endian or little endian?
+    magic = unpack("<I", buf[:4])[0]  # Are we big endian or little endian?
     if magic == LE_MAGIC:
-        version, msgcount, origidx, transidx = unpack('<4I', buf[4:20])
-        ii = '<II'
+        version, msgcount, origidx, transidx = unpack("<4I", buf[4:20])
+        ii = "<II"
     elif magic == BE_MAGIC:
-        version, msgcount, origidx, transidx = unpack('>4I', buf[4:20])
-        ii = '>II'
+        version, msgcount, origidx, transidx = unpack(">4I", buf[4:20])
+        ii = ">II"
     else:
-        raise IOError(0, 'Bad magic number', filename)
+        raise IOError(0, "Bad magic number", filename)
 
     # Now put all messages from the .mo file buffer into the catalog
     # dictionary
     for i in range(0, msgcount):
-        mlen, moff = unpack(ii, buf[origidx:origidx + 8])
+        mlen, moff = unpack(ii, buf[origidx : origidx + 8])
         mend = moff + mlen
-        tlen, toff = unpack(ii, buf[transidx:transidx + 8])
+        tlen, toff = unpack(ii, buf[transidx : transidx + 8])
         tend = toff + tlen
         if mend < buflen and tend < buflen:
             msg = buf[moff:mend]
             tmsg = buf[toff:tend]
         else:
-            raise IOError(0, 'File is corrupt', filename)
+            raise IOError(0, "File is corrupt", filename)
 
         # See if we're looking at GNU .mo conventions for metadata
         if mlen == 0:
@@ -71,21 +71,21 @@ def read_mo(fileobj):
                 item = item.strip()
                 if not item:
                     continue
-                if b':' in item:
-                    key, value = item.split(b':', 1)
+                if b":" in item:
+                    key, value = item.split(b":", 1)
                     lastkey = key = key.strip().lower()
                     headers[key] = value.strip()
                 elif lastkey:
-                    headers[lastkey] += b'\n' + item
+                    headers[lastkey] += b"\n" + item
 
-        if b'\x04' in msg:  # context
-            ctxt, msg = msg.split(b'\x04')
+        if b"\x04" in msg:  # context
+            ctxt, msg = msg.split(b"\x04")
         else:
             ctxt = None
 
-        if b'\x00' in msg:  # plural forms
-            msg = msg.split(b'\x00')
-            tmsg = tmsg.split(b'\x00')
+        if b"\x00" in msg:  # plural forms
+            msg = msg.split(b"\x00")
+            tmsg = tmsg.split(b"\x00")
             if catalog.charset:
                 msg = [x.decode(catalog.charset) for x in msg]
                 tmsg = [x.decode(catalog.charset) for x in tmsg]
@@ -103,14 +103,9 @@ def read_mo(fileobj):
     return catalog
 
 
-def write_mo(fileobj, catalog, use_fuzzy=False):
+def write_mo(fileobj, catalog: Catalog, use_fuzzy: bool = False):
     """Write a catalog to the specified file-like object using the GNU MO file
     format.
-
-    >>> import sys
-    >>> from poboy.babelmsg import Catalog
-    >>> from gettext import GNUTranslations
-    >>> from io import BytesIO
 
     >>> catalog = Catalog(locale='en_US')
     >>> catalog.add('foo', 'Voh')
@@ -152,38 +147,36 @@ def write_mo(fileobj, catalog, use_fuzzy=False):
                       in the output
     """
     messages = list(catalog)
-    messages[1:] = [m for m in messages[1:]
-                    if m.string and (use_fuzzy or not m.fuzzy)]
+    messages[1:] = [m for m in messages[1:] if m.string and (use_fuzzy or not m.fuzzy)]
     messages.sort()
 
-    ids = strs = b''
+    ids = strs = b""
     offsets = []
 
     for message in messages:
         # For each string, we need size and file offset.  Each string is NUL
         # terminated; the NUL does not count into the size.
         if message.pluralizable:
-            msgid = b'\x00'.join([
-                msgid.encode(catalog.charset) for msgid in message.id
-            ])
+            msgid = b"\x00".join(
+                [msgid.encode(catalog.charset) for msgid in message.id]
+            )
             msgstrs = []
             for idx, string in enumerate(message.string):
                 if not string:
                     msgstrs.append(message.id[min(int(idx), 1)])
                 else:
                     msgstrs.append(string)
-            msgstr = b'\x00'.join([
-                msgstr.encode(catalog.charset) for msgstr in msgstrs
-            ])
+            msgstr = b"\x00".join(
+                [msgstr.encode(catalog.charset) for msgstr in msgstrs]
+            )
         else:
             msgid = message.id.encode(catalog.charset)
             msgstr = message.string.encode(catalog.charset)
         if message.context:
-            msgid = b'\x04'.join([message.context.encode(catalog.charset),
-                                  msgid])
+            msgid = b"\x04".join([message.context.encode(catalog.charset), msgid])
         offsets.append((len(ids), len(msgid), len(strs), len(msgstr)))
-        ids += msgid + b'\x00'
-        strs += msgstr + b'\x00'
+        ids += msgid + b"\x00"
+        strs += msgstr + b"\x00"
 
     # The header is 7 32-bit unsigned integers.  We don't use hash tables, so
     # the keys start right after the index tables.
@@ -199,11 +192,18 @@ def write_mo(fileobj, catalog, use_fuzzy=False):
         voffsets += [l2, o2 + valuestart]
     offsets = koffsets + voffsets
 
-    fileobj.write(struct.pack('Iiiiiii',
-                              LE_MAGIC,                   # magic
-                              0,                          # version
-                              len(messages),              # number of entries
-                              7 * 4,                      # start of key index
-                              7 * 4 + len(messages) * 8,  # start of value index
-                              0, 0                        # size and offset of hash table
-                              ) + array.array.tobytes(array.array("i", offsets)) + ids + strs)
+    fileobj.write(
+        struct.pack(
+            "Iiiiiii",
+            LE_MAGIC,  # magic
+            0,  # version
+            len(messages),  # number of entries
+            7 * 4,  # start of key index
+            7 * 4 + len(messages) * 8,  # start of value index
+            0,
+            0,  # size and offset of hash table
+        )
+        + array.array.tobytes(array.array("i", offsets))
+        + ids
+        + strs
+    )

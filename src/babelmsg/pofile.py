@@ -29,16 +29,18 @@ def unescape(string: str) -> str:
 
     :param string: the string to unescape
     """
+
     def replace_escapes(match):
         m = match.group(1)
-        if m == 'n':
-            return '\n'
-        elif m == 't':
-            return '\t'
-        elif m == 'r':
-            return '\r'
+        if m == "n":
+            return "\n"
+        elif m == "t":
+            return "\t"
+        elif m == "r":
+            return "\r"
         # m is \ or "
         return m
+
     return re.compile(r'\\([\\trn"])').sub(replace_escapes, string[1:-1])
 
 
@@ -63,27 +65,29 @@ def denormalize(string: str) -> str:
 
     :param string: the string to denormalize
     """
-    if '\n' in string:
+    if "\n" in string:
         escaped_lines = string.splitlines()
         if string.startswith('""'):
             escaped_lines = escaped_lines[1:]
         lines = map(unescape, escaped_lines)
-        return ''.join(lines)
+        return "".join(lines)
     else:
         return unescape(string)
 
 
 class PoFileError(Exception):
     """Exception thrown by PoParser when an invalid po file is encountered."""
+
     def __init__(self, message, catalog, line, lineno):
-        super(PoFileError, self).__init__('{message} on {lineno}'.format(message=message, lineno=lineno))
+        super(PoFileError, self).__init__(
+            "{message} on {lineno}".format(message=message, lineno=lineno)
+        )
         self.catalog = catalog
         self.line = line
         self.lineno = lineno
 
 
 class _NormalizedString:
-
     def __init__(self, *args):
         self._strs = []
         for arg in args:
@@ -93,7 +97,7 @@ class _NormalizedString:
         self._strs.append(s.strip())
 
     def denormalize(self):
-        return ''.join(map(unescape, self._strs))
+        return "".join(map(unescape, self._strs))
 
     def __nonzero__(self):
         return bool(self._strs)
@@ -136,10 +140,10 @@ class PoFileParser:
     """
 
     _keywords = [
-        'msgid',
-        'msgstr',
-        'msgctxt',
-        'msgid_plural',
+        "msgid",
+        "msgstr",
+        "msgctxt",
+        "msgid_plural",
     ]
 
     def __init__(self, catalog, ignore_obsolete=False, abort_invalid=False):
@@ -174,10 +178,14 @@ class PoFileParser:
         else:
             msgid = self.messages[0].denormalize()
         if isinstance(msgid, (list, tuple)):
-            string = ['' for _ in range(self.catalog.num_plurals)]
+            string = ["" for _ in range(self.catalog.num_plurals)]
             for idx, translation in self.translations:
                 if idx >= self.catalog.num_plurals:
-                    self._invalid_pofile(u"", self.offset, "msg has more translations than num_plurals of catalog")
+                    self._invalid_pofile(
+                        u"",
+                        self.offset,
+                        "msg has more translations than num_plurals of catalog",
+                    )
                     continue
                 string[idx] = translation.denormalize()
             string = tuple(string)
@@ -187,9 +195,16 @@ class PoFileParser:
             msgctxt = self.context.denormalize()
         else:
             msgctxt = None
-        message = Message(msgid, string, list(self.locations), set(self.flags),
-                          self.auto_comments, self.user_comments, lineno=self.offset + 1,
-                          context=msgctxt)
+        message = Message(
+            msgid,
+            string,
+            list(self.locations),
+            set(self.flags),
+            self.auto_comments,
+            self.user_comments,
+            lineno=self.offset + 1,
+            context=msgctxt,
+        )
         if self.obsolete:
             if not self.ignore_obsolete:
                 self.catalog.obsolete[msgid] = message
@@ -212,40 +227,44 @@ class PoFileParser:
 
         for keyword in self._keywords:
             try:
-                if line.startswith(keyword) and line[len(keyword)] in [' ', '[']:
-                    arg = line[len(keyword):]
+                if line.startswith(keyword) and line[len(keyword)] in [" ", "["]:
+                    arg = line[len(keyword) :]
                     break
             except IndexError:
-                self._invalid_pofile(line, lineno, "Keyword must be followed by a string")
+                self._invalid_pofile(
+                    line, lineno, "Keyword must be followed by a string"
+                )
         else:
-            self._invalid_pofile(line, lineno, "Start of line didn't match any expected keyword.")
+            self._invalid_pofile(
+                line, lineno, "Start of line didn't match any expected keyword."
+            )
             return
 
-        if keyword in ['msgid', 'msgctxt']:
+        if keyword in ["msgid", "msgctxt"]:
             self._finish_current_message()
 
         self.obsolete = obsolete
 
         # The line that has the msgid is stored as the offset of the msg
         # should this be the msgctxt if it has one?
-        if keyword == 'msgid':
+        if keyword == "msgid":
             self.offset = lineno
 
-        if keyword in ['msgid', 'msgid_plural']:
+        if keyword in ["msgid", "msgid_plural"]:
             self.in_msgctxt = False
             self.in_msgid = True
             self.messages.append(_NormalizedString(arg))
 
-        elif keyword == 'msgstr':
+        elif keyword == "msgstr":
             self.in_msgid = False
             self.in_msgstr = True
-            if arg.startswith('['):
-                idx, msg = arg[1:].split(']', 1)
+            if arg.startswith("["):
+                idx, msg = arg[1:].split("]", 1)
                 self.translations.append([int(idx), _NormalizedString(msg)])
             else:
                 self.translations.append([0, _NormalizedString(arg)])
 
-        elif keyword == 'msgctxt':
+        elif keyword == "msgctxt":
             self.in_msgctxt = True
             self.context = _NormalizedString(arg)
 
@@ -257,7 +276,11 @@ class PoFileParser:
         elif self.in_msgctxt:
             s = self.context
         else:
-            self._invalid_pofile(line, lineno, "Got line starting with \" but not in msgid, msgstr or msgctxt")
+            self._invalid_pofile(
+                line,
+                lineno,
+                'Got line starting with " but not in msgid, msgstr or msgctxt',
+            )
             return
         s.append(line)
 
@@ -265,21 +288,21 @@ class PoFileParser:
 
         self._finish_current_message()
 
-        if line[1:].startswith(':'):
+        if line[1:].startswith(":"):
             for location in line[2:].lstrip().split():
-                pos = location.rfind(':')
+                pos = location.rfind(":")
                 if pos >= 0:
                     try:
-                        lineno = int(location[pos + 1:])
+                        lineno = int(location[pos + 1 :])
                     except ValueError:
                         continue
                     self.locations.append((location[:pos], lineno))
                 else:
                     self.locations.append((location, None))
-        elif line[1:].startswith(','):
-            for flag in line[2:].lstrip().split(','):
+        elif line[1:].startswith(","):
+            for flag in line[2:].lstrip().split(","):
                 self.flags.append(flag.strip())
-        elif line[1:].startswith('.'):
+        elif line[1:].startswith("."):
             # These are called auto-comments
             comment = line[2:].strip()
             if comment:  # Just check that we're not adding empty comments
@@ -300,8 +323,8 @@ class PoFileParser:
                 line = line.decode(self.catalog.charset)
             if not line:
                 continue
-            if line.startswith('#'):
-                if line[1:].startswith('~'):
+            if line.startswith("#"):
+                if line[1:].startswith("~"):
                     self._process_message_line(lineno, line[2:].lstrip(), obsolete=True)
                 else:
                     self._process_comment(line)
@@ -312,7 +335,9 @@ class PoFileParser:
 
         # No actual messages found, but there was some info in comments, from which
         # we'll construct an empty header message
-        if not self.counter and (self.flags or self.user_comments or self.auto_comments):
+        if not self.counter and (
+            self.flags or self.user_comments or self.auto_comments
+        ):
             self.messages.append(_NormalizedString(u'""'))
             self.translations.append([0, _NormalizedString(u'""')])
             self._add_message()
@@ -328,7 +353,14 @@ class PoFileParser:
         print(u"WARNING: Problem on line {0}: {1}".format(lineno + 1, repr(line)))
 
 
-def read_po(fileobj, locale=None, domain=None, ignore_obsolete:bool=False, charset:str=None, abort_invalid:bool=False) -> Catalog:
+def read_po(
+    fileobj,
+    locale=None,
+    domain=None,
+    ignore_obsolete: bool = False,
+    charset: str = None,
+    abort_invalid: bool = False,
+) -> Catalog:
     """Read messages from a ``gettext`` PO (portable object) file from the given
     file-like object and return a `Catalog`.
 
@@ -381,11 +413,13 @@ def read_po(fileobj, locale=None, domain=None, ignore_obsolete:bool=False, chars
     return catalog
 
 
-WORD_SEP = re.compile('('
-                      r'\s+|'                                 # any whitespace
-                      r'[^\s\w]*\w+[a-zA-Z]-(?=\w+[a-zA-Z])|'  # hyphenated words
-                      r'(?<=[\w\!\"\'\&\.\,\?])-{2,}(?=\w)'   # em-dash
-                      ')')
+WORD_SEP = re.compile(
+    "("
+    r"\s+|"  # any whitespace
+    r"[^\s\w]*\w+[a-zA-Z]-(?=\w+[a-zA-Z])|"  # hyphenated words
+    r"(?<=[\w\!\"\'\&\.\,\?])-{2,}(?=\w)"  # em-dash
+    ")"
+)
 
 
 def escape(string: str) -> str:
@@ -399,14 +433,12 @@ def escape(string: str) -> str:
 
     :param string: the string to escape
     """
-    return '"%s"' % string.replace('\\', '\\\\') \
-                          .replace('\t', '\\t') \
-                          .replace('\r', '\\r') \
-                          .replace('\n', '\\n') \
-                          .replace('\"', '\\"')
+    return '"%s"' % string.replace("\\", "\\\\").replace("\t", "\\t").replace(
+        "\r", "\\r"
+    ).replace("\n", "\\n").replace('"', '\\"')
 
 
-def normalize(string: str, prefix:str='', width:int=76) -> str:
+def normalize(string: str, prefix: str = "", width: int = 76) -> str:
     r"""Convert a string into a format that is appropriate for .po files.
 
     >>> print(normalize('''Say:
@@ -451,7 +483,7 @@ def normalize(string: str, prefix:str='', width:int=76) -> str:
                                 # separate line
                                 buf.append(chunks.pop())
                             break
-                    lines.append(u''.join(buf))
+                    lines.append(u"".join(buf))
             else:
                 lines.append(line)
     else:
@@ -463,13 +495,22 @@ def normalize(string: str, prefix:str='', width:int=76) -> str:
     # Remove empty trailing line
     if lines and not lines[-1]:
         del lines[-1]
-        lines[-1] += '\n'
-    return u'""\n' + u'\n'.join([(prefix + escape(line)) for line in lines])
+        lines[-1] += "\n"
+    return u'""\n' + u"\n".join([(prefix + escape(line)) for line in lines])
 
 
-def write_po(fileobj, catalog: Catalog, width:int=76, no_location:bool=False, omit_header:bool=False,
-             sort_output:bool=False, sort_by_file:bool=False, ignore_obsolete:bool=False,
-             include_previous:bool=False, include_lineno:bool=True):
+def write_po(
+    fileobj,
+    catalog: Catalog,
+    width: int = 76,
+    no_location: bool = False,
+    omit_header: bool = False,
+    sort_output: bool = False,
+    sort_by_file: bool = False,
+    ignore_obsolete: bool = False,
+    include_previous: bool = False,
+    include_lineno: bool = True,
+):
     r"""Write a ``gettext`` PO (portable object) template file for a given
     message catalog to the provided file-like object.
 
@@ -513,15 +554,16 @@ def write_po(fileobj, catalog: Catalog, width:int=76, no_location:bool=False, om
                              updating the catalog
     :param include_lineno: include line number in the location comment
     """
-    def _normalize(key, prefix=''):
+
+    def _normalize(key, prefix=""):
         return normalize(key, prefix=prefix, width=width)
 
     def _write(text):
         if isinstance(text, str):
-            text = text.encode(catalog.charset, 'backslashreplace')
+            text = text.encode(catalog.charset, "backslashreplace")
         fileobj.write(text)
 
-    def _write_comment(comment, prefix=''):
+    def _write_comment(comment, prefix=""):
         # xgettext always wraps comments even if --no-wrap is passed;
         # provide the same behaviour
         if width and width > 0:
@@ -529,34 +571,26 @@ def write_po(fileobj, catalog: Catalog, width:int=76, no_location:bool=False, om
         else:
             _width = 76
         for line in wraptext(comment, _width):
-            _write('#%s %s\n' % (prefix, line.strip()))
+            _write("#%s %s\n" % (prefix, line.strip()))
 
-    def _write_message(message, prefix=''):
+    def _write_message(message, prefix=""):
         if isinstance(message.id, (list, tuple)):
             if message.context:
-                _write('%smsgctxt %s\n' % (prefix,
-                                           _normalize(message.context, prefix)))
-            _write('%smsgid %s\n' % (prefix, _normalize(message.id[0], prefix)))
-            _write('%smsgid_plural %s\n' % (
-                prefix, _normalize(message.id[1], prefix)
-            ))
+                _write("%smsgctxt %s\n" % (prefix, _normalize(message.context, prefix)))
+            _write("%smsgid %s\n" % (prefix, _normalize(message.id[0], prefix)))
+            _write("%smsgid_plural %s\n" % (prefix, _normalize(message.id[1], prefix)))
 
             for idx in range(catalog.num_plurals):
                 try:
                     string = message.string[idx]
                 except IndexError:
-                    string = ''
-                _write('%smsgstr[%d] %s\n' % (
-                    prefix, idx, _normalize(string, prefix)
-                ))
+                    string = ""
+                _write("%smsgstr[%d] %s\n" % (prefix, idx, _normalize(string, prefix)))
         else:
             if message.context:
-                _write('%smsgctxt %s\n' % (prefix,
-                                           _normalize(message.context, prefix)))
-            _write('%smsgid %s\n' % (prefix, _normalize(message.id, prefix)))
-            _write('%smsgstr %s\n' % (
-                prefix, _normalize(message.string or '', prefix)
-            ))
+                _write("%smsgctxt %s\n" % (prefix, _normalize(message.context, prefix)))
+            _write("%smsgid %s\n" % (prefix, _normalize(message.id, prefix)))
+            _write("%smsgstr %s\n" % (prefix, _normalize(message.string or "", prefix)))
 
     sort_by = None
     if sort_output:
@@ -572,15 +606,14 @@ def write_po(fileobj, catalog: Catalog, width:int=76, no_location:bool=False, om
             if width and width > 0:
                 lines = []
                 for line in comment_header.splitlines():
-                    lines += wraptext(line, width=width,
-                                      subsequent_indent='# ')
-                comment_header = u'\n'.join(lines)
-            _write(comment_header + u'\n')
+                    lines += wraptext(line, width=width, subsequent_indent="# ")
+                comment_header = u"\n".join(lines)
+            _write(comment_header + u"\n")
 
         for comment in message.user_comments:
             _write_comment(comment)
         for comment in message.auto_comments:
-            _write_comment(comment, prefix='.')
+            _write_comment(comment, prefix=".")
 
         if not no_location:
             locs = []
@@ -590,40 +623,38 @@ def write_po(fileobj, catalog: Catalog, width:int=76, no_location:bool=False, om
             # if no sorting possible, leave unsorted.
             # (see issue #606)
             try:
-                locations = sorted(message.locations, 
-                                   key=lambda x: (x[0], isinstance(x[1], int) and x[1] or -1))
+                locations = sorted(
+                    message.locations,
+                    key=lambda x: (x[0], isinstance(x[1], int) and x[1] or -1),
+                )
             except TypeError:  # e.g. "TypeError: unorderable types: NoneType() < int()"
                 locations = message.locations
 
             for filename, lineno in locations:
                 if lineno and include_lineno:
-                    locs.append(u'%s:%d' % (filename.replace(os.sep, '/'), lineno))
+                    locs.append(u"%s:%d" % (filename.replace(os.sep, "/"), lineno))
                 else:
-                    locs.append(u'%s' % filename.replace(os.sep, '/'))
-            _write_comment(' '.join(locs), prefix=':')
+                    locs.append(u"%s" % filename.replace(os.sep, "/"))
+            _write_comment(" ".join(locs), prefix=":")
         if message.flags:
-            _write('#%s\n' % ', '.join([''] + sorted(message.flags)))
+            _write("#%s\n" % ", ".join([""] + sorted(message.flags)))
 
         if message.previous_id and include_previous:
-            _write_comment('msgid %s' % _normalize(message.previous_id[0]),
-                           prefix='|')
+            _write_comment("msgid %s" % _normalize(message.previous_id[0]), prefix="|")
             if len(message.previous_id) > 1:
-                _write_comment('msgid_plural %s' % _normalize(
-                    message.previous_id[1]
-                ), prefix='|')
+                _write_comment(
+                    "msgid_plural %s" % _normalize(message.previous_id[1]), prefix="|"
+                )
 
         _write_message(message)
-        _write('\n')
+        _write("\n")
 
     if not ignore_obsolete:
-        for message in _sort_messages(
-            catalog.obsolete.values(),
-            sort_by=sort_by
-        ):
+        for message in _sort_messages(catalog.obsolete.values(), sort_by=sort_by):
             for comment in message.user_comments:
                 _write_comment(comment)
-            _write_message(message, prefix='#~ ')
-            _write('\n')
+            _write_message(message, prefix="#~ ")
+            _write("\n")
 
 
 def _sort_messages(messages: List[Message], sort_by: str) -> List[Message]:
