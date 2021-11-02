@@ -2,12 +2,15 @@ import os
 import sys
 
 import re
+from datetime import datetime
+
 import wx
 
 from babelmsg import pofile, mofile, extract
 from wx.lib.embeddedimage import PyEmbeddedImage
 
 from src.babelmsg import Catalog
+from src.babelmsg.core import Locale
 
 PUNCTUATION = (".", "?", "!", ":", ";")
 
@@ -224,6 +227,12 @@ class TranslationProject:
         self.template_file = None
         self.translation_file = None
 
+    def init(self, locale: Locale):
+        self.translate = self.template.clone()
+        self.translate.locale = locale
+        self.translate.revision_date = datetime.now()
+        self.translate.fuzzy = False
+
     def load_translation(self, file):
         with open(file, "r", encoding="utf-8") as file:
             self.translate = pofile.read_po(file)
@@ -273,14 +282,13 @@ class TranslationPanel(wx.Panel):
             wx.ID_ANY,
             style=wx.TR_HAS_BUTTONS
             | wx.TR_HAS_VARIABLE_ROW_HEIGHT
-            | wx.TR_HIDE_ROOT
             | wx.TR_NO_LINES
             | wx.TR_SINGLE
             | wx.TR_TWIST_BUTTONS,
         )
         main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
-        self.root = self.tree.AddRoot("")
+        self.root = self.tree.AddRoot(_("Project"))
 
         self.template = self.tree.AppendItem(self.root, _("Template"))
         self.translation = self.tree.AppendItem(self.root, _("Translation"))
@@ -457,11 +465,11 @@ class TranslationPanel(wx.Panel):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return None
             pathname = fileDialog.GetPath()
-            self.project.load_translation(pathname)
+            self.project.load_template(pathname)
             self.tree_rebuild_tree()
             return pathname
 
-    def open_load_sources_dialog(self):
+    def open_generate_from_sources_dialog(self):
         directory = None
         dlg = wx.DirDialog(
             self,
@@ -474,6 +482,21 @@ class TranslationPanel(wx.Panel):
             self.tree_rebuild_tree()
         dlg.Destroy()
         return directory
+
+    def init_translation_from_template(self):
+        dlg = wx.TextEntryDialog(
+            None,
+            _("Provide the Translation locale"),
+            _("Initializing Template"),
+            "",
+        )
+        dlg.SetValue("")
+
+        if dlg.ShowModal() == wx.ID_OK:
+            self.project.init(Locale(str(dlg.GetValue())))
+        dlg.ShowModal()
+        dlg.Destroy()
+
 
     def clear_project(self):
         self.project.clear()
@@ -525,7 +548,7 @@ class TranslationPanel(wx.Panel):
                 if name == "":
                     name = _("HEADER")
                 self.tree.AppendItem(self.workflow_all, name, data=message)
-                self.message_revalidate_translation(message)
+                self.message_revalidate(message)
         if self.project.template is not None:
             for message in self.project.template:
                 msgid = str(message.id)
@@ -559,7 +582,7 @@ class TranslationPanel(wx.Panel):
         if n.IsOk():
             self.tree.SelectItem(n)
 
-    def message_revalidate_translation(self, message):
+    def message_revalidate(self, message):
         """
         Find the message's current classification and the message's qualified classifcations and remove the message from
         those sections it does not qualify for anymore, and add it to those sections it has started to qualify for,
@@ -579,7 +602,7 @@ class TranslationPanel(wx.Panel):
         old_parents = []
         for item in items:
             old_parents.append(self.tree.GetItemParent(item))
-        new_parents = self.message_classify_translation(message)
+        new_parents = self.message_classify(message)
 
         name = msgid.strip()
         if name == "":
@@ -601,7 +624,7 @@ class TranslationPanel(wx.Panel):
         for item in adding:
             items.append(self.tree.AppendItem(item, name, data=message))
 
-    def message_classify_translation(self, message=None):
+    def message_classify(self, message=None):
         """
         Find all sections for which the current message qualifies.
 
@@ -674,7 +697,7 @@ class TranslationPanel(wx.Panel):
         for item in list(self.tree.GetSelections()):
             t = self.tree.GetNextSibling(item)
         if self.message is not None:
-            self.message_revalidate_translation(self.message)
+            self.message_revalidate(self.message)
         if t is not None and t.IsOk():
             self.tree.SelectItem(t)
         self.text_translated_text.SetFocus()
@@ -714,8 +737,18 @@ class PoboyWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_save_translation_as, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Template as"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_template_as, item)
-
         self.main_menubar.Append(wxglade_tmp_menu, _("File"))
+
+        wxglade_tmp_menu = wx.Menu()
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Start Translation\tCtrl+T"), "")
+        self.Bind(wx.EVT_MENU, self.on_menu_start_translation, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Next Message\tCtrl+Down"), "")
+        self.Bind(wx.EVT_MENU, self.on_menu_next, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Copy Source\tAlt+Down"), "")
+        self.Bind(wx.EVT_MENU, self.on_menu_source, item)
+        self.main_menubar.Append(wxglade_tmp_menu, _("Translations"))
+
+
         wxglade_tmp_menu = wx.Menu()
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Previous Message\tCtrl+Up"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_previous, item)
@@ -739,15 +772,13 @@ class PoboyWindow(wx.Frame):
         self.panel.clear_project()
 
     def on_menu_open_translation(self, event):  # wxGlade: MyFrame.<event_handler>
-        filename = "./locale/messages.po"
-        self.panel.open_load_translation_dialog(filename)
+        self.panel.open_load_translation_dialog()
 
     def on_menu_open_template(self, event):  # wxGlade: MyFrame.<event_handler>
-        filename = "./locale/messages.po"
-        self.panel.open_load_template_dialog(filename)
+        self.panel.open_load_template_dialog()
 
     def on_menu_open_sources(self, event):
-        self.panel.open_load_sources_dialog()
+        self.panel.open_generate_from_sources_dialog()
 
     def on_menu_save_translation(self, event):  # wxGlade: MyFrame.<event_handler>
         self.panel.try_save_working_file_translation()
@@ -760,6 +791,9 @@ class PoboyWindow(wx.Frame):
 
     def on_menu_save_template_as(self, event):  # wxGlade: MyFrame.<event_handler>
         self.panel.open_save_template_dialog()
+
+    def on_menu_start_translation(self, event):
+        self.panel.init_translation_from_template()
 
     def on_menu_previous(self, event):  # wxGlade: MyFrame.<event_handler>
         self.panel.tree_move_to_previous()

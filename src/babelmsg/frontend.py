@@ -23,7 +23,7 @@ from datetime import datetime
 from io import StringIO
 from locale import getpreferredencoding
 
-
+from src.babelmsg.core import Locale, UnknownLocaleError
 from .catalog import Catalog
 from .extract import (
     DEFAULT_KEYWORDS,

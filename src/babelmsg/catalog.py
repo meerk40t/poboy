@@ -286,6 +286,32 @@ class Catalog(object):
         self._num_plurals = None
         self._plural_expr = None
 
+    def clone(self):
+        c = Catalog(
+            *map(
+                copy,
+                (
+                    self.locale,
+                    self.domain,
+                    self._header_comment,
+                    self.project,
+                    self.version,
+                    self.copyright_holder,
+                    self.msgid_bugs_address,
+                    self.creation_date,
+                    self.revision_date,
+                    self.last_translator,
+                    self.language_team,
+                    self.charset,
+                    self.fuzzy,
+                ),
+            )
+        )
+        for m in self._messages:
+            message = self._messages[m]
+            self[message.id] = message.clone()
+        return c
+
     def _set_locale(self, locale):
         if locale is None:
             self._locale_identifier = None
@@ -747,7 +773,6 @@ class Catalog(object):
     ):
         """Update the catalog based on the given template catalog.
 
-        >>> from babel.messages import Catalog
         >>> template = Catalog()
         >>> template.add('green', locations=[('main.py', 99)])
         <Message ...>
