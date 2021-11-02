@@ -2,6 +2,7 @@ import os
 import sys
 
 import re
+from collections import OrderedDict
 from datetime import datetime
 
 import wx
@@ -13,6 +14,8 @@ from src.babelmsg import Catalog
 from src.babelmsg.core import Locale
 
 PUNCTUATION = (".", "?", "!", ":", ";")
+TEMPLATE = ""
+HEADER = ""
 
 _ = wx.GetTranslation
 
@@ -213,61 +216,73 @@ def plugin(kernel, lifecycle):
             pass
 
 
+def save(catalog, filename=None, write_mo=True):
+    if filename is None:
+        filename = catalog.filename
+    with open(filename, "wb") as save:
+        pofile.write_po(save, catalog)
+    if filename.endswith(".pot") or not write_mo:
+        return
+    if filename.endswith(".po"):
+        filename = filename[:-3]
+    filename += ".mo"
+    with open(filename, "wb") as save:
+        mofile.write_mo(save, catalog)
+
+def load(filename):
+    with open(filename, "r", encoding="utf-8") as file:
+        catalog = pofile.read_po(file)
+        catalog.filename = file
+        return catalog
+
+def generate_catalog_from_python_package(sources_directory):
+    catalog = Catalog()
+    for filename, lineno, message, comments, context in extract.extract_from_dir(
+        sources_directory
+    ):
+        if os.path.isfile(sources_directory):
+            filepath = filename  # already normalized
+        else:
+            filepath = os.path.normpath(os.path.join(sources_directory, filename))
+        catalog.add(
+            message,
+            None,
+            [(filepath, lineno)],
+            auto_comments=comments,
+            context=context,
+        )
+    return catalog
+
+
 class TranslationProject:
     def __init__(self):
-        self.template_file = None
-        self.translation_file = None
-
-        self.template = None
-        self.translate = None
+        self.catalogs = OrderedDict()
 
     def clear(self):
-        self.translate = None
-        self.template = None
-        self.template_file = None
-        self.translation_file = None
+        self.catalogs.clear()
 
-    def init(self, locale: Locale):
-        self.translate = self.template.clone()
-        self.translate.locale = locale
-        self.translate.revision_date = datetime.now()
-        self.translate.fuzzy = False
+    def init(self, locale: str):
+        template = self.catalogs.get(TEMPLATE)
+        translate = template.clone()
+        translate._locale = locale
+        translate.revision_date = datetime.now()
+        translate.fuzzy = False
+        self.catalogs[locale] = translate
 
-    def load_translation(self, file):
-        with open(file, "r", encoding="utf-8") as file:
-            self.translate = pofile.read_po(file)
-        self.translation_file = file
+    def load(self, filename):
+        catalog = load(filename)
+        locale = catalog.locale
+        if locale is None:
+            locale = TEMPLATE  # Template.
+        self.catalogs[str(locale)] = catalog
 
-    def load_template(self, file):
-        with open(file, "r", encoding="utf-8") as file:
-            self.template = pofile.read_po(file)
-        self.template_file = file
+    def save(self, locale:str, filename:str=None):
+        catalog = self.catalogs[locale]
+        save(catalog, filename)
 
-    def generate_template_from_python_package(self, sources_directory):
-        catalog = Catalog()
-        for filename, lineno, message, comments, context in extract.extract_from_dir(sources_directory):
-            if os.path.isfile(sources_directory):
-                filepath = filename  # already normalized
-            else:
-                filepath = os.path.normpath(os.path.join(sources_directory, filename))
-            catalog.add(message, None, [(filepath, lineno)],
-                            auto_comments=comments, context=context)
-        self.template = catalog
-
-    def save_translation(self, translation_file):
-        self.translation_file = translation_file
-        with open(translation_file, "wb") as save:
-            pofile.write_po(save,self.translate)
-        if translation_file.endswith(".po"):
-            translation_file = translation_file[:-3]
-        translation_file += ".mo"
-        with open(translation_file, "wb") as save:
-            mofile.write_mo(save, self.translate)
-
-    def save_template(self, template_file):
-        self.template_file = template_file
-        with open(template_file, "wb") as save:
-            pofile.write_po(save, self.template)
+    def generate(self, sources_directory):
+        catalog = generate_catalog_from_python_package(sources_directory)
+        self.catalogs[TEMPLATE] = catalog
 
 
 class TranslationPanel(wx.Panel):
@@ -289,36 +304,7 @@ class TranslationPanel(wx.Panel):
         main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
         self.root = self.tree.AddRoot(_("Project"))
-
-        self.template = self.tree.AppendItem(self.root, _("Template"))
-        self.translation = self.tree.AppendItem(self.root, _("Translation"))
-        self.errors = self.tree.AppendItem(self.root, _("Errors"))
-        self.issues = self.tree.AppendItem(self.root, _("Issues"))
-
-        self.tree.SetItemTextColour(self.errors, wx.RED)
-        self.error_printf = self.tree.AppendItem(self.errors, _("printf-tokens"))
-
-        self.tree.SetItemTextColour(self.issues, wx.Colour(127, 127, 0))
-        self.warning_equal = self.tree.AppendItem(self.issues, _("msgid==msgstr"))
-        self.warning_start_capital = self.tree.AppendItem(
-            self.issues, _("capitalization")
-        )
-        self.warning_end_punct = self.tree.AppendItem(
-            self.issues, _("ending punctuation")
-        )
-        self.warning_end_space = self.tree.AppendItem(
-            self.issues, _("ending whitespace")
-        )
-        self.warning_double_space = self.tree.AppendItem(self.issues, _("double space"))
-
-        self.workflow_untranslated = self.tree.AppendItem(
-            self.translation, _("Untranslated")
-        )
-        self.workflow_translated = self.tree.AppendItem(self.translation, _("Translated"))
-        self.workflow_all = self.tree.AppendItem(self.translation, _("All"))
-
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
-        self.tree.ExpandAll()
 
         self.panel_message = wx.Panel(self, wx.ID_ANY)
         main_sizer.Add(self.panel_message, 3, wx.EXPAND, 0)
@@ -397,7 +383,8 @@ class TranslationPanel(wx.Panel):
         self.text_translated_text.SetFocus()
         # end wxGlade
         self.project = TranslationProject()
-        self.message = None
+        self.selected_message = None
+        self.selected_catalog = None
 
     def open_save_translation_dialog(self):
         with wx.FileDialog(
@@ -411,7 +398,7 @@ class TranslationPanel(wx.Panel):
             pathname = fileDialog.GetPath()
             if not pathname.lower().endswith(".po"):
                 pathname += ".po"
-            self.project.save_translation(pathname)
+            save(self.selected_catalog)
             return pathname
 
     def open_save_template_dialog(self):
@@ -426,6 +413,7 @@ class TranslationPanel(wx.Panel):
             pathname = fileDialog.GetPath()
             if not pathname.lower().endswith(".pot"):
                 pathname += ".pot"
+            self.project.save(TEMPLATE, pathname)
             self.project.save_template(pathname)
             return pathname
 
@@ -497,10 +485,10 @@ class TranslationPanel(wx.Panel):
         dlg.Destroy()
         self.tree_rebuild_tree()
 
-
     def clear_project(self):
         self.project.clear()
         self.tree_rebuild_tree()
+
     #
     # def load_translation_file(self, translation_file):
     #     self.project.load_translation(translation_file)
@@ -513,10 +501,12 @@ class TranslationPanel(wx.Panel):
     #     self.tree.ExpandAll()
 
     def try_save_working_file_translation(self):
-        if self.project.translation_file is None:
+        catalog = self.selected_catalog
+        filename = catalog.filename
+        if filename is None:
             self.open_save_translation_dialog()
         else:
-            self.project.save_translation(self.project.translation_file)
+            self.project.save(catalog,filename)
 
     def try_save_working_file_template(self):
         if self.project.template_file is None:
@@ -525,38 +515,65 @@ class TranslationPanel(wx.Panel):
             self.project.save_translation(self.project.template_file)
 
     def tree_clear_tree(self):
-        self.tree.DeleteChildren(self.template)
-
-        self.tree.DeleteChildren(self.workflow_translated)
-        self.tree.DeleteChildren(self.workflow_untranslated)
-        self.tree.DeleteChildren(self.workflow_all)
-
-        self.tree.DeleteChildren(self.error_printf)
-
-        self.tree.DeleteChildren(self.warning_equal)
-        self.tree.DeleteChildren(self.warning_end_space)
-        self.tree.DeleteChildren(self.warning_end_punct)
-        self.tree.DeleteChildren(self.warning_double_space)
-        self.tree.DeleteChildren(self.warning_start_capital)
+        self.tree.DeleteAllItems()
 
     def tree_rebuild_tree(self):
-        self.tree_clear_tree()
-        if self.project.translate is not None:
-            for message in self.project.translate:
+        tree = self.tree
+        tree.DeleteAllItems()
+        try:
+            catalog = self.project.catalogs[TEMPLATE]
+            catalog.item = tree.AppendItem(self.root, _("Template"))
+            for message in catalog:
                 msgid = str(message.id)
                 name = msgid.strip()
-                if name == "":
+                if name == HEADER:
                     name = _("HEADER")
-                self.tree.AppendItem(self.workflow_all, name, data=message)
-                self.message_revalidate(message)
-        if self.project.template is not None:
-            for message in self.project.template:
-                msgid = str(message.id)
-                name = msgid.strip()
-                if name == "":
-                    name = _("HEADER")
-                self.tree.AppendItem(self.template, name, data=message)
-        self.tree.ExpandAll()
+                tree.AppendItem(catalog, name, data=(catalog, message))
+        except KeyError:
+            pass
+
+        for m in self.project.catalogs:
+            if m == TEMPLATE:
+                continue
+            else:
+                catalog = self.project.catalogs[m]
+                catalog.item = tree.AppendItem(self.root, m)
+
+                catalog.errors = tree.AppendItem(catalog.item, _("Errors"))
+                tree.SetItemTextColour(catalog.errors, wx.RED)
+
+                catalog.issues = tree.AppendItem(catalog.item, _("Issues"))
+                tree.SetItemTextColour(catalog.issues, wx.Colour(127, 127, 0))
+
+                catalog.error_printf = tree.AppendItem(catalog.errors, _("printf-tokens"))
+
+                catalog.warning_equal = tree.AppendItem(catalog.issues, _("msgid==msgstr"))
+                catalog.warning_start_capital = tree.AppendItem(
+                    catalog.issues, _("capitalization")
+                )
+                catalog.warning_end_punct = tree.AppendItem(
+                    catalog.issues, _("ending punctuation")
+                )
+                catalog.warning_end_space = tree.AppendItem(
+                    catalog.issues, _("ending whitespace")
+                )
+                catalog.warning_double_space = tree.AppendItem(catalog.issues, _("double space"))
+
+                catalog.workflow_untranslated = tree.AppendItem(
+                    catalog.translation, _("Untranslated")
+                )
+                catalog.workflow_translated = tree.AppendItem(
+                    catalog.translation, _("Translated")
+                )
+                catalog.workflow_all = tree.AppendItem(catalog.translation, _("All"))
+                for message in catalog:
+                    msgid = str(message.id)
+                    name = msgid.strip()
+                    if name == HEADER:
+                        name = _("HEADER")
+                    tree.AppendItem(catalog.workflow_all, name, data=(catalog, message))
+                    self.message_revalidate(message)
+        tree.ExpandAll()
 
     def tree_move_to_next(self):
         t = None
@@ -566,7 +583,7 @@ class TranslationPanel(wx.Panel):
         if t is None:
             return
         n = self.tree.GetNextSibling(t)
-        self.message_revalidate(self.message)
+        self.message_revalidate(self.selected_message)
         if n.IsOk():
             self.tree.SelectItem(n)
 
@@ -578,11 +595,11 @@ class TranslationPanel(wx.Panel):
         if t is None:
             return
         n = self.tree.GetPrevSibling(t)
-        self.message_revalidate(self.message)
+        self.message_revalidate(self.selected_catalog, self.selected_message)
         if n.IsOk():
             self.tree.SelectItem(n)
 
-    def message_revalidate(self, message):
+    def message_revalidate(self, catalog, message):
         """
         Find the message's current classification and the message's qualified classifcations and remove the message from
         those sections it does not qualify for anymore, and add it to those sections it has started to qualify for,
@@ -594,6 +611,8 @@ class TranslationPanel(wx.Panel):
         :param message:
         :return:
         """
+        tree = self.tree
+
         comment = message.auto_comments
         msgid = message.id
         msgstr = message.string
@@ -601,11 +620,11 @@ class TranslationPanel(wx.Panel):
 
         old_parents = []
         for item in items:
-            old_parents.append(self.tree.GetItemParent(item))
-        new_parents = self.message_classify(message)
+            old_parents.append(tree.GetItemParent(item))
+        new_parents = self.message_classify(catalog, message)
 
         name = msgid.strip()
-        if name == "":
+        if name == HEADER:
             name = _("HEADER")
 
         removing = []
@@ -624,50 +643,48 @@ class TranslationPanel(wx.Panel):
         for item in adding:
             items.append(self.tree.AppendItem(item, name, data=message))
 
-    def message_classify(self, message=None):
+    def message_classify(self, catalog, message):
         """
         Find all sections for which the current message qualifies.
 
         :param message: message to classify.
         :return:
         """
-        if message is None:
-            message = self.message
         classes = []
         comment = message.auto_comments
         msgid = message.id
         msgstr = message.string
         items = message.items
-        if msgid == "":
+        if msgid == HEADER:
             return classes
         if not msgstr:
-            classes.append(self.workflow_untranslated)
+            classes.append(catalog.workflow_untranslated)
             return classes
         else:
-            classes.append(self.workflow_translated)
+            classes.append(catalog.workflow_translated)
 
         if msgid == msgstr:
-            classes.append(self.warning_equal)
+            classes.append(catalog.warning_equal)
         if msgid[-1] != msgstr[-1]:
             if msgid[-1] in PUNCTUATION or msgstr[-1] in PUNCTUATION:
-                classes.append(self.warning_end_punct)
+                classes.append(catalog.warning_end_punct)
             if msgid[-1] == " " or msgstr[-1] == " ":
-                classes.append(self.warning_end_space)
+                classes.append(catalog.warning_end_space)
         if ("%f" in msgid) != ("%f" in msgstr):
-            classes.append(self.error_printf)
+            classes.append(catalog.error_printf)
         elif ("%s" in msgid) != ("%s" in msgstr):
-            classes.append(self.error_printf)
+            classes.append(catalog.error_printf)
         elif ("%d" in msgid) != ("%d" in msgstr):
-            classes.append(self.error_printf)
+            classes.append(catalog.error_printf)
         if msgid[0].isupper() != msgstr[0].isupper():
-            classes.append(self.warning_start_capital)
+            classes.append(catalog.warning_start_capital)
         if "  " in msgstr and "  " not in msgid:
-            classes.append(self.warning_double_space)
+            classes.append(catalog.warning_double_space)
         return classes
 
-    def update_translation_values(self, message=None):
-        if message is None:
-            message = self.message
+    def update_gui_translation_pane(self):
+        message = self.selected_message
+
         if message is not None:
             comment = message.auto_comments
             msgid = message.id
@@ -680,24 +697,24 @@ class TranslationPanel(wx.Panel):
         try:
             data = [self.tree.GetItemData(item) for item in self.tree.GetSelections()]
             if len(data) > 0:
-                self.message = data[0]
-                self.update_translation_values()
+                self.selected_catalog, self.selected_message = data[0]
+                self.update_gui_translation_pane()
         except RuntimeError:
             pass
 
     def on_text_translated(self, event):  # wxGlade: TranslationPanel.<event_handler>
-        if self.message:
-            if not self.message.pluralizable:
-                self.message.string = self.text_translated_text.GetValue()
+        if self.selected_message:
+            if not self.selected_message.pluralizable:
+                self.selected_message.string = self.text_translated_text.GetValue()
             else:
-                self.message.string[0] = self.text_translated_text.GetValue()
+                self.selected_message.string[0] = self.text_translated_text.GetValue()
 
     def on_text_enter(self, event):
         t = None
         for item in list(self.tree.GetSelections()):
             t = self.tree.GetNextSibling(item)
-        if self.message is not None:
-            self.message_revalidate(self.message)
+        if self.selected_message is not None:
+            self.message_revalidate(self.selected_message)
         if t is not None and t.IsOk():
             self.tree.SelectItem(t)
         self.text_translated_text.SetFocus()
@@ -747,7 +764,6 @@ class PoboyWindow(wx.Frame):
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Copy Source\tAlt+Down"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_source, item)
         self.main_menubar.Append(wxglade_tmp_menu, _("Translations"))
-
 
         wxglade_tmp_menu = wx.Menu()
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Previous Message\tCtrl+Up"), "")
@@ -845,6 +861,7 @@ class PoboyWindow(wx.Frame):
 
 # end of class MyFrame
 
+
 class PoboyApp(wx.App):
     def OnInit(self):
         self.load_catalogs()
@@ -853,7 +870,6 @@ class PoboyApp(wx.App):
         self.SetTopWindow(self.frame)
         self.frame.Show()
         return True
-
 
     def load_catalogs(self):
         try:  # pyinstaller internal location
