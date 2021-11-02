@@ -143,29 +143,32 @@ def extract_from_dir(
     if options_map is None:
         options_map = {}
 
-    absname = os.path.abspath(dirname)
-    for root, dirnames, filenames in os.walk(absname):
-        dirnames[:] = [
-            subdir
-            for subdir in dirnames
-            if not (subdir.startswith(".") or subdir.startswith("_"))
-        ]
-        dirnames.sort()
-        filenames.sort()
-        for filename in filenames:
-            filepath = os.path.join(root, filename).replace(os.sep, "/")
+    directories = [ os.path.join(dirname,item) for item in os.listdir(dirname)]
+    directories = [ item for item in directories if os.path.isdir(item)]
+    for directory in directories:
+        items = list(os.listdir(directory))
+        if "__init__.py" not in items:
+            continue # This is not a package.
+        items = [os.path.join(directory, item) for item in items]
+        # directories.extend([item for item in items if os.path.isdir(item)])
+        for item in items:
+            if os.path.isdir(item):
+                directories.append(item)
+            else:
+                if not os.path.basename(item).endswith(".py"):
+                    continue
+                for message_tuple in check_and_call_extract_file(
+                        item,
+                        method_map,
+                        options_map,
+                        callback,
+                        keywords,
+                        comment_tags,
+                        strip_comment_tags,
+                        dirpath=dirname,
+                ):
+                    yield message_tuple
 
-            for message_tuple in check_and_call_extract_file(
-                filepath,
-                method_map,
-                options_map,
-                callback,
-                keywords,
-                comment_tags,
-                strip_comment_tags,
-                dirpath=absname,
-            ):
-                yield message_tuple
 
 
 def check_and_call_extract_file(
