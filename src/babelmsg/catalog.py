@@ -39,6 +39,7 @@ PYTHON_FORMAT = re.compile(
     re.VERBOSE,
 )
 
+
 class Message(object):
     """Representation of a single message in a catalog."""
 
@@ -236,6 +237,7 @@ class Catalog(object):
         language_team=None,
         charset=None,
         fuzzy=True,
+        filename=None,
     ):
         """Initialize the catalog object.
 
@@ -281,6 +283,7 @@ class Catalog(object):
             revision_date = datetime.now()
         self.revision_date = revision_date
         self.fuzzy = fuzzy
+        self.filename = filename
 
         self.obsolete = OrderedDict()  # Dictionary of obsolete messages
         self._num_plurals = None
@@ -304,6 +307,7 @@ class Catalog(object):
                     self.language_team,
                     self.charset,
                     self.fuzzy,
+                    self.filename,
                 ),
             )
         )
