@@ -380,6 +380,7 @@ class TranslationPanel(wx.Panel):
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_enter, self.text_translated_text)
         self.text_translated_text.SetFocus()
         # end wxGlade
+        self.template = None
         self.project = TranslationProject()
         self.selected_message = None
         self.selected_catalog = None
@@ -515,8 +516,9 @@ class TranslationPanel(wx.Panel):
                 if name == HEADER:
                     name = _("HEADER")
                 message.item = tree.AppendItem(catalog.item, name, data=(catalog, message))
+            self.template = catalog
         except KeyError:
-            pass
+            self.template = None
 
         for m in self.project.catalogs:
             if m == TEMPLATE:
@@ -531,10 +533,10 @@ class TranslationPanel(wx.Panel):
                 catalog.errors = tree.AppendItem(catalog.item, _("Errors"))
                 tree.SetItemTextColour(catalog.errors, wx.RED)
 
+                catalog.error_printf = tree.AppendItem(catalog.errors, _("printf-tokens"))
+
                 catalog.issues = tree.AppendItem(catalog.item, _("Issues"))
                 tree.SetItemTextColour(catalog.issues, wx.Colour(127, 127, 0))
-
-                catalog.error_printf = tree.AppendItem(catalog.errors, _("printf-tokens"))
 
                 catalog.warning_equal = tree.AppendItem(catalog.issues, _("msgid==msgstr"))
                 catalog.warning_start_capital = tree.AppendItem(
@@ -548,6 +550,15 @@ class TranslationPanel(wx.Panel):
                 )
                 catalog.warning_double_space = tree.AppendItem(catalog.issues, _("double space"))
 
+                catalog.workflow_obsolete = tree.AppendItem(
+                    catalog.item, _("Obsolete")
+                )
+                catalog.workflow_orphans = tree.AppendItem(
+                    catalog.item, _("Orphans")
+                )
+                catalog.workflow_new = tree.AppendItem(
+                    catalog.item, _("New")
+                )
                 catalog.workflow_untranslated = tree.AppendItem(
                     catalog.item, _("Untranslated")
                 )
@@ -562,6 +573,14 @@ class TranslationPanel(wx.Panel):
                         name = _("HEADER")
                     message.item = tree.AppendItem(catalog.workflow_all, name, data=(catalog, message))
                     self.message_revalidate(catalog, message)
+                if self.template is not None:
+                    for message in self.template:
+                        msgid = str(message.id)
+                        name = msgid.strip()
+                        if name == HEADER:
+                            continue
+                        if msgid not in catalog._messages:
+                            message.items.append(tree.AppendItem(catalog.workflow_new, name, data=(catalog, message)))
         tree.ExpandAll()
 
     def tree_move_to_next(self):
@@ -590,9 +609,9 @@ class TranslationPanel(wx.Panel):
 
     def message_revalidate(self, catalog, message):
         """
-        Find the message's current classification and the message's qualified classifcations and remove the message from
-        those sections it does not qualify for anymore, and add it to those sections it has started to qualify for,
-        those sections which are still qualified remain.
+        Find the message's current classification and the message's qualified classifications and remove the message
+        from those sections it does not qualify for anymore, and add it to those sections it has started to qualify for,
+        those sections which are still qualified remain unchanged.
 
         This permits the tree to remove untranslated or error messages from those section as those are translated and
         the errors are corrected.
@@ -651,6 +670,11 @@ class TranslationPanel(wx.Panel):
             return classes
         else:
             classes.append(catalog.workflow_translated)
+
+        template = self.template
+        if template is not None:
+            if message.id not in template._messages:
+                classes.append(catalog.workflow_orphans)
 
         if msgid == msgstr:
             classes.append(catalog.warning_equal)
