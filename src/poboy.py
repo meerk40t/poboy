@@ -218,6 +218,7 @@ class TranslationProject:
 
         self.entries = []
 
+
     def append(self, comment=None, msgid=None, msgstr=None):
         self.entries.append((comment, msgid, msgstr, list()))
 

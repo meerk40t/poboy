@@ -13,11 +13,13 @@
 import os
 import re
 
+from typing import List
+
 from .catalog import Catalog, Message
 from .util import wraptext, _cmp
 
 
-def unescape(string):
+def unescape(string: str) -> str:
     r"""Reverse `escape` the given string.
 
     >>> print(unescape('"Say:\\n  \\"hello, world!\\"\\n"'))
@@ -40,7 +42,7 @@ def unescape(string):
     return re.compile(r'\\([\\trn"])').sub(replace_escapes, string[1:-1])
 
 
-def denormalize(string):
+def denormalize(string: str) -> str:
     r"""Reverse the normalization done by the `normalize` function.
 
     >>> print(denormalize(r'''""
@@ -80,7 +82,7 @@ class PoFileError(Exception):
         self.lineno = lineno
 
 
-class _NormalizedString(object):
+class _NormalizedString:
 
     def __init__(self, *args):
         self._strs = []
@@ -126,7 +128,7 @@ class _NormalizedString(object):
         return self.__cmp__(other) != 0
 
 
-class PoFileParser(object):
+class PoFileParser:
     """Support class to  read messages from a ``gettext`` PO (portable object) file
     and add them to a `Catalog`
 
@@ -326,7 +328,7 @@ class PoFileParser(object):
         print(u"WARNING: Problem on line {0}: {1}".format(lineno + 1, repr(line)))
 
 
-def read_po(fileobj, locale=None, domain=None, ignore_obsolete=False, charset=None, abort_invalid=False):
+def read_po(fileobj, locale=None, domain=None, ignore_obsolete:bool=False, charset:str=None, abort_invalid:bool=False) -> Catalog:
     """Read messages from a ``gettext`` PO (portable object) file from the given
     file-like object and return a `Catalog`.
 
@@ -386,7 +388,7 @@ WORD_SEP = re.compile('('
                       ')')
 
 
-def escape(string):
+def escape(string: str) -> str:
     r"""Escape the given string so that it can be included in double-quoted
     strings in ``PO`` files.
 
@@ -404,7 +406,7 @@ def escape(string):
                           .replace('\"', '\\"')
 
 
-def normalize(string, prefix='', width=76):
+def normalize(string: str, prefix:str='', width:int=76) -> str:
     r"""Convert a string into a format that is appropriate for .po files.
 
     >>> print(normalize('''Say:
@@ -465,9 +467,9 @@ def normalize(string, prefix='', width=76):
     return u'""\n' + u'\n'.join([(prefix + escape(line)) for line in lines])
 
 
-def write_po(fileobj, catalog, width=76, no_location=False, omit_header=False,
-             sort_output=False, sort_by_file=False, ignore_obsolete=False,
-             include_previous=False, include_lineno=True):
+def write_po(fileobj, catalog: Catalog, width:int=76, no_location:bool=False, omit_header:bool=False,
+             sort_output:bool=False, sort_by_file:bool=False, ignore_obsolete:bool=False,
+             include_previous:bool=False, include_lineno:bool=True):
     r"""Write a ``gettext`` PO (portable object) template file for a given
     message catalog to the provided file-like object.
 
@@ -624,7 +626,7 @@ def write_po(fileobj, catalog, width=76, no_location=False, omit_header=False,
             _write('\n')
 
 
-def _sort_messages(messages, sort_by):
+def _sort_messages(messages: List[Message], sort_by: str) -> List[Message]:
     """
     Sort the given message iterable by the given criteria.
 
