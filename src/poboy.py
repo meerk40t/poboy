@@ -63,7 +63,6 @@ def plugin(kernel, lifecycle):
             "generate", input_type="locale", output_type="locale", hidden=True
         )
         def generate_locale(channel, _, data=None, **kwargs):
-
             return "locale", data
 
         @context.console_argument("locale", help="locale use for these opeations")
@@ -206,38 +205,37 @@ def plugin(kernel, lifecycle):
             template.writelines(lines)
 
         try:
-            kernel.register("window/Translate", PoboyFrame)
+            kernel.register("window/Translate", PoboyWindow)
         except NameError:
             pass
 
 
 class TranslationProject:
     def __init__(self):
-        self.working_source_files = None
-        self.working_template_file = None
-        self.working_translation_file = None
+        self.template_file = None
+        self.translation_file = None
 
-        self.catalog_source = None
-        self.catalog_template = None
-        self.catalog_translate = None
+        self.template = None
+        self.translate = None
 
     def clear(self):
-        self.catalog_translate = None
-        self.catalog_template = None
-        self.catalog_source = None
+        self.translate = None
+        self.template = None
+        self.template_file = None
+        self.translation_file = None
 
-    def load_translation(self, translation_file):
-        with open(translation_file, "r", encoding="utf-8") as file:
-            self.catalog_translate = pofile.read_po(file)
+    def load_translation(self, file):
+        with open(file, "r", encoding="utf-8") as file:
+            self.translate = pofile.read_po(file)
+        self.translation_file = file
 
-    def load_template(self, template_file):
-        with open(template_file, "r", encoding="utf-8") as file:
-            self.catalog_translate = pofile.read_po(file)
+    def load_template(self, file):
+        with open(file, "r", encoding="utf-8") as file:
+            self.template = pofile.read_po(file)
+        self.template_file = file
 
-    def generate_from_python_directory(self, sources_directory):
-        # TODO: Respect .gitignore values
-        self.catalog_source = Catalog()
-        catalog = self.catalog_source
+    def generate_template_from_python_package(self, sources_directory):
+        catalog = Catalog()
         for filename, lineno, message, comments, context in extract.extract_from_dir(sources_directory):
             if os.path.isfile(sources_directory):
                 filepath = filename  # already normalized
@@ -245,32 +243,28 @@ class TranslationProject:
                 filepath = os.path.normpath(os.path.join(sources_directory, filename))
             catalog.add(message, None, [(filepath, lineno)],
                             auto_comments=comments, context=context)
+        self.template = catalog
 
     def save_translation(self, translation_file):
-        self.save_po(translation_file)
+        self.translation_file = translation_file
+        with open(translation_file, "wb") as save:
+            pofile.write_po(save,self.translate)
         if translation_file.endswith(".po"):
             translation_file = translation_file[:-3]
-            self.save_mo(translation_file + ".mo")
+        translation_file += ".mo"
+        with open(translation_file, "wb") as save:
+            mofile.write_mo(save, self.translate)
 
     def save_template(self, template_file):
-        self.save_po(template_file)
-
-    def save_po(self, translation_file):
-        with open(translation_file, "w", encoding="utf-8") as save:
-            pofile.write_po(save,self.catalog_translate)
-
-    def save_mo(self, compiled_file_name):
-        with open(compiled_file_name, "wb", encoding="utf-8") as save:
-            pofile.write_po(save,self.catalog_translate)
+        self.template_file = template_file
+        with open(template_file, "wb") as save:
+            pofile.write_po(save, self.template)
 
 
 class TranslationPanel(wx.Panel):
     def __init__(self, *args, **kwds):
         kwds["style"] = kwds.get("style", 0) | wx.TAB_TRAVERSAL
         wx.Panel.__init__(self, *args, **kwds)
-        self.translations = None
-        self.template = None
-        self.language = None
 
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -286,9 +280,10 @@ class TranslationPanel(wx.Panel):
         )
         main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
-        self.root = self.tree.AddRoot(_("Translation"))
+        self.root = self.tree.AddRoot("")
 
-        self.workflow = self.tree.AppendItem(self.root, _("Workflow"))
+        self.template = self.tree.AppendItem(self.root, _("Template"))
+        self.translation = self.tree.AppendItem(self.root, _("Translation"))
         self.errors = self.tree.AppendItem(self.root, _("Errors"))
         self.issues = self.tree.AppendItem(self.root, _("Issues"))
 
@@ -308,11 +303,11 @@ class TranslationPanel(wx.Panel):
         )
         self.warning_double_space = self.tree.AppendItem(self.issues, _("double space"))
 
-        self.all = self.tree.AppendItem(self.workflow, _("All Translations"))
         self.workflow_untranslated = self.tree.AppendItem(
-            self.workflow, _("Untranslated")
+            self.translation, _("Untranslated")
         )
-        self.workflow_translated = self.tree.AppendItem(self.workflow, _("Translated"))
+        self.workflow_translated = self.tree.AppendItem(self.translation, _("Translated"))
+        self.workflow_all = self.tree.AppendItem(self.translation, _("All"))
 
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
         self.tree.ExpandAll()
@@ -396,31 +391,10 @@ class TranslationPanel(wx.Panel):
         self.project = TranslationProject()
         self.message = None
 
-    def open_load_translation_dialog(self, filename=None):
-        if filename is None:
-            filename = "."
-        default_file = os.path.basename(filename)
-        default_dir = os.path.dirname(filename)
-
-        with wx.FileDialog(
-            self,
-            _("Open"),
-            defaultDir=default_dir,
-            defaultFile=default_file,
-            wildcard="*.po",
-            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
-        ) as fileDialog:
-            fileDialog.SetFilename(default_file)
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return None
-            pathname = fileDialog.GetPath()
-            self.load_translation_file(pathname)
-            return pathname
-
     def open_save_translation_dialog(self):
         with wx.FileDialog(
             self,
-            _("Save Project"),
+            _("Save Translation"),
             wildcard="*.po",
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as fileDialog:
@@ -432,25 +406,59 @@ class TranslationPanel(wx.Panel):
             self.project.save_translation(pathname)
             return pathname
 
-    def open_load_template_dialog(self, filename=None):
-        if filename is None:
-            filename = "."
-        default_file = os.path.basename(filename)
-        default_dir = os.path.dirname(filename)
+    def open_save_template_dialog(self):
+        with wx.FileDialog(
+            self,
+            _("Save Template"),
+            wildcard="*.pot",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+        ) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return None
+            pathname = fileDialog.GetPath()
+            if not pathname.lower().endswith(".pot"):
+                pathname += ".pot"
+            self.project.save_template(pathname)
+            return pathname
+
+    def open_load_translation_dialog(self):
+        # filename = self.project.translation_file
+        # if filename is None:
+        #     filename = "messages.po"
+        # default_file = os.path.basename(filename)
+        # default_dir = os.path.dirname(filename)
+        with wx.FileDialog(
+            self,
+            _("Open"),
+            wildcard="*.po",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as fileDialog:
+            # fileDialog.SetFilename(default_file)
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return None
+            pathname = fileDialog.GetPath()
+            self.project.load_translation(pathname)
+            self.tree_rebuild_tree()
+            return pathname
+
+    def open_load_template_dialog(self):
+        # default_file = os.path.basename(filename)
+        # default_dir = os.path.dirname(filename)
 
         with wx.FileDialog(
             self,
             _("Open"),
-            defaultDir=default_dir,
-            defaultFile=default_file,
-            wildcard="*.po",
+            # defaultDir=default_dir,
+            # defaultFile=default_file,
+            wildcard="*.pot",
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
         ) as fileDialog:
-            fileDialog.SetFilename(default_file)
+            # fileDialog.SetFilename(default_file)
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return None
             pathname = fileDialog.GetPath()
-            self.load_template_file(pathname)
+            self.project.load_translation(pathname)
+            self.tree_rebuild_tree()
             return pathname
 
     def open_load_sources_dialog(self):
@@ -462,83 +470,70 @@ class TranslationPanel(wx.Panel):
         )
         if dlg.ShowModal() == wx.ID_OK:
             directory = os.path.abspath(dlg.GetPath())
-            self.generate_from_python_sources(directory)
+            self.project.generate_template_from_python_package(directory)
+            self.tree_rebuild_tree()
         dlg.Destroy()
         return directory
 
     def clear_project(self):
         self.project.clear()
         self.tree_rebuild_tree()
+    #
+    # def load_translation_file(self, translation_file):
+    #     self.project.load_translation(translation_file)
+    #     self.tree_rebuild_tree()
+    #     self.tree.ExpandAll()
+    #
+    # def load_template_file(self, template_file):
+    #     self.project.load_template(template_file)
+    #     self.tree_rebuild_tree()
+    #     self.tree.ExpandAll()
 
-    def load_translation_file(self, translation_file):
-        self.project.load_translation(translation_file)
-        self.tree_rebuild_tree()
-        self.tree.ExpandAll()
-
-    def load_template_file(self, template_file):
-        self.project.load_template(template_file)
-        self.tree_rebuild_tree()
-        self.tree.ExpandAll()
-
-    def try_save_working_file(self):
-        if self.project.working_translation_file is None:
-            self.project.working_translation_file = self.open_save_translation_dialog()
+    def try_save_working_file_translation(self):
+        if self.project.translation_file is None:
+            self.open_save_translation_dialog()
         else:
-            self.project.save_translation(self.project.working_translation_file)
+            self.project.save_translation(self.project.translation_file)
 
-    def try_save_working_file_template(self, template_file):
-        if self.project.working_template_file is None:
-            self.project.working_template_file = self.open_save_translation_dialog()
+    def try_save_working_file_template(self):
+        if self.project.template_file is None:
+            self.project.template_file = self.open_save_template_dialog()
         else:
-            self.project.save_translation(self.project.working_template_file)
-
-    def generate_from_python_sources(self, directory):
-        """
-        This will later be replaced with internal parsing of the python files.
-
-        :param directory:
-        :return:
-        """
-        self.project.generate_from_python_directory(directory)
-        self.tree_rebuild_tree()
+            self.project.save_translation(self.project.template_file)
 
     def tree_clear_tree(self):
-        self.tree.DeleteChildren(self.all)
+        self.tree.DeleteChildren(self.template)
+
+        self.tree.DeleteChildren(self.workflow_translated)
+        self.tree.DeleteChildren(self.workflow_untranslated)
+        self.tree.DeleteChildren(self.workflow_all)
+
         self.tree.DeleteChildren(self.error_printf)
+
         self.tree.DeleteChildren(self.warning_equal)
         self.tree.DeleteChildren(self.warning_end_space)
         self.tree.DeleteChildren(self.warning_end_punct)
         self.tree.DeleteChildren(self.warning_double_space)
         self.tree.DeleteChildren(self.warning_start_capital)
-        self.tree.DeleteChildren(self.workflow_translated)
-        self.tree.DeleteChildren(self.workflow_untranslated)
 
     def tree_rebuild_tree(self):
         self.tree_clear_tree()
-        if self.project.catalog_translate is not None:
-            for message in self.project.catalog_translate:
+        if self.project.translate is not None:
+            for message in self.project.translate:
                 msgid = str(message.id)
                 name = msgid.strip()
                 if name == "":
                     name = _("HEADER")
-                self.tree.AppendItem(self.all, name, data=message)
-                self.message_revalidate(message)
-        if self.project.catalog_template is not None:
-            for message in self.project.catalog_template:
+                self.tree.AppendItem(self.workflow_all, name, data=message)
+                self.message_revalidate_translation(message)
+        if self.project.template is not None:
+            for message in self.project.template:
                 msgid = str(message.id)
                 name = msgid.strip()
                 if name == "":
                     name = _("HEADER")
-                self.tree.AppendItem(self.all, name, data=message)
-                self.message_revalidate(message)
-        if self.project.catalog_source is not None:
-            for message in self.project.catalog_source:
-                msgid = str(message.id)
-                name = msgid.strip()
-                if name == "":
-                    name = _("HEADER")
-                self.tree.AppendItem(self.all, name, data=message)
-                self.message_revalidate(message)
+                self.tree.AppendItem(self.template, name, data=message)
+        self.tree.ExpandAll()
 
     def tree_move_to_next(self):
         t = None
@@ -564,7 +559,7 @@ class TranslationPanel(wx.Panel):
         if n.IsOk():
             self.tree.SelectItem(n)
 
-    def message_revalidate(self, message):
+    def message_revalidate_translation(self, message):
         """
         Find the message's current classification and the message's qualified classifcations and remove the message from
         those sections it does not qualify for anymore, and add it to those sections it has started to qualify for,
@@ -584,7 +579,7 @@ class TranslationPanel(wx.Panel):
         old_parents = []
         for item in items:
             old_parents.append(self.tree.GetItemParent(item))
-        new_parents = self.message_classify(message)
+        new_parents = self.message_classify_translation(message)
 
         name = msgid.strip()
         if name == "":
@@ -606,7 +601,7 @@ class TranslationPanel(wx.Panel):
         for item in adding:
             items.append(self.tree.AppendItem(item, name, data=message))
 
-    def message_classify(self, message=None):
+    def message_classify_translation(self, message=None):
         """
         Find all sections for which the current message qualifies.
 
@@ -679,7 +674,7 @@ class TranslationPanel(wx.Panel):
         for item in list(self.tree.GetSelections()):
             t = self.tree.GetNextSibling(item)
         if self.message is not None:
-            self.message_revalidate(self.message)
+            self.message_revalidate_translation(self.message)
         if t is not None and t.IsOk():
             self.tree.SelectItem(t)
         self.text_translated_text.SetFocus()
@@ -688,7 +683,7 @@ class TranslationPanel(wx.Panel):
         self.text_translated_text.SetValue(self.text_original_text.GetValue())
 
 
-class PoboyFrame(wx.Frame):
+class PoboyWindow(wx.Frame):
     def __init__(self, *args, **kwds):
         # begin wxGlade: MyFrame.__init__
         kwds["style"] = kwds.get("style", 0) | wx.DEFAULT_FRAME_STYLE
@@ -706,17 +701,19 @@ class PoboyFrame(wx.Frame):
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("New\tCtrl+N"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_new, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Open Translation\tCtrl+O"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_open, item)
+        self.Bind(wx.EVT_MENU, self.on_menu_open_translation, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Open Template\tCtrl+Shift+O"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_open_template, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Open Sources\tAlt+O"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_open_sources, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Translation\tCtrl+S"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_save, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Template\tCtrl+S"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_save, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save as"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_saveas, item)
+        self.Bind(wx.EVT_MENU, self.on_menu_save_translation, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Template\tCtrl+Shift+S"), "")
+        self.Bind(wx.EVT_MENU, self.on_menu_save_template, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Translation as"), "")
+        self.Bind(wx.EVT_MENU, self.on_menu_save_translation_as, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Template as"), "")
+        self.Bind(wx.EVT_MENU, self.on_menu_save_template_as, item)
 
         self.main_menubar.Append(wxglade_tmp_menu, _("File"))
         wxglade_tmp_menu = wx.Menu()
@@ -741,7 +738,7 @@ class PoboyFrame(wx.Frame):
     def on_menu_new(self, event):
         self.panel.clear_project()
 
-    def on_menu_open(self, event):  # wxGlade: MyFrame.<event_handler>
+    def on_menu_open_translation(self, event):  # wxGlade: MyFrame.<event_handler>
         filename = "./locale/messages.po"
         self.panel.open_load_translation_dialog(filename)
 
@@ -752,11 +749,17 @@ class PoboyFrame(wx.Frame):
     def on_menu_open_sources(self, event):
         self.panel.open_load_sources_dialog()
 
-    def on_menu_save(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.panel.try_save_working_file()
+    def on_menu_save_translation(self, event):  # wxGlade: MyFrame.<event_handler>
+        self.panel.try_save_working_file_translation()
 
-    def on_menu_saveas(self, event):  # wxGlade: MyFrame.<event_handler>
+    def on_menu_save_template(self, event):  # wxGlade: MyFrame.<event_handler>
+        self.panel.try_save_working_file_template()
+
+    def on_menu_save_translation_as(self, event):  # wxGlade: MyFrame.<event_handler>
         self.panel.open_save_translation_dialog()
+
+    def on_menu_save_template_as(self, event):  # wxGlade: MyFrame.<event_handler>
+        self.panel.open_save_template_dialog()
 
     def on_menu_previous(self, event):  # wxGlade: MyFrame.<event_handler>
         self.panel.tree_move_to_previous()
@@ -812,7 +815,7 @@ class PoboyApp(wx.App):
     def OnInit(self):
         self.load_catalogs()
 
-        self.frame = PoboyFrame(None, wx.ID_ANY, "")
+        self.frame = PoboyWindow(None, wx.ID_ANY, "")
         self.SetTopWindow(self.frame)
         self.frame.Show()
         return True
