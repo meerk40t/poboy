@@ -274,7 +274,7 @@ class TranslationProject:
         catalog = load(filename)
         locale = catalog.locale
         if locale is None:
-            locale = TEMPLATE  # Template.
+            locale = TEMPLATE
         self.catalogs[str(locale)] = catalog
 
     def save(self, locale:str, filename:str=None):
@@ -418,11 +418,6 @@ class TranslationPanel(wx.Panel):
             return pathname
 
     def open_load_translation_dialog(self):
-        # filename = self.project.translation_file
-        # if filename is None:
-        #     filename = "messages.po"
-        # default_file = os.path.basename(filename)
-        # default_dir = os.path.dirname(filename)
         with wx.FileDialog(
             self,
             _("Open"),
@@ -438,14 +433,9 @@ class TranslationPanel(wx.Panel):
             return pathname
 
     def open_load_template_dialog(self):
-        # default_file = os.path.basename(filename)
-        # default_dir = os.path.dirname(filename)
-
         with wx.FileDialog(
             self,
             _("Open"),
-            # defaultDir=default_dir,
-            # defaultFile=default_file,
             wildcard="*.pot",
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
         ) as fileDialog:
@@ -456,6 +446,16 @@ class TranslationPanel(wx.Panel):
             self.project.load(pathname)
             self.tree_rebuild_tree()
             return pathname
+
+    def load_all_translations(self, locale_directory):
+        directories = [item for item in os.listdir(locale_directory)]
+        directories = [os.path.join(locale_directory, item) for item in directories]
+        directories = [item for item in directories if os.path.isdir(item)]
+        for directory in directories:
+            for path, dirs, files in os.walk(directory):
+                for file in files:
+                    if file.endswith(".po"):
+                        self.project.load(os.path.join(path, file))
 
     def open_generate_from_sources_dialog(self):
         directory = None
@@ -468,6 +468,9 @@ class TranslationPanel(wx.Panel):
             directory = os.path.abspath(dlg.GetPath())
             with wx.BusyInfo(_("Generating template from sources.")):
                 self.project.generate(directory)
+                locale_directory = os.path.join(directory,"locale")
+                if os.path.exists(locale_directory):
+                    self.load_all_translations(locale_directory)
                 self.tree_rebuild_tree()
         dlg.Destroy()
         return directory

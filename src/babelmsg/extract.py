@@ -145,6 +145,7 @@ def extract_from_dir(
 
     directories = [ os.path.join(dirname,item) for item in os.listdir(dirname)]
     directories = [ item for item in directories if os.path.isdir(item)]
+
     for directory in directories:
         items = list(os.listdir(directory))
         if "__init__.py" not in items:
