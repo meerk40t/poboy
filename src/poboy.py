@@ -3,6 +3,7 @@ import sys
 
 import re
 from collections import OrderedDict
+from copy import copy
 from datetime import datetime
 
 import wx
@@ -10,7 +11,8 @@ import wx
 from babelmsg import pofile, mofile, extract
 from wx.lib.embeddedimage import PyEmbeddedImage
 
-from src.babelmsg import Catalog, Message
+from src.babelmsg import Catalog
+from functools import lru_cache
 
 PUNCTUATION = (".", "?", "!", ":", ";")
 TEMPLATE = ""
@@ -236,6 +238,7 @@ def load(filename):
         catalog.filename = filename
         return catalog
 
+
 def generate_catalog_from_python_package(sources_directory):
     catalog = Catalog()
     for filename, lineno, message, comments, context in extract.extract_from_dir(
@@ -300,6 +303,31 @@ class TranslationProject:
             for catalog in self.catalogs.values():
                 if msgid not in catalog._messages:
                     catalog.new[msgid] = message.clone()
+
+    def perform_updates(self):
+        for catalog in self.catalogs.values():
+            catalog._messages.update(catalog.new)
+            catalog.new.clear()
+
+    def delete_equals(self):
+        for catalog in self.catalogs.values():
+            for message in catalog:
+                if message.id == message.string:
+                    message.string = None
+
+    def mark_all_orphans_obsolete(self):
+        template = self.catalogs[TEMPLATE]
+        if template is None:
+            return
+        for message in template:
+            msgid = str(message.id)
+            name = msgid.strip()
+            if name == HEADER:
+                continue
+            for catalog in self.catalogs.values():
+                if msgid not in template._messages:
+                    catalog.obsolete[msgid] = message.clone()
+                    del catalog._messages[msgid]
 
     def generate(self, sources_directory):
         catalog = generate_catalog_from_python_package(sources_directory)
@@ -500,6 +528,15 @@ class TranslationPanel(wx.Panel):
         if dlg.ShowModal() == wx.ID_OK:
             self.project.init(dlg.GetValue())
         dlg.Destroy()
+        self.tree_rebuild_tree()
+
+    def delete_equals(self):
+        self.project.delete_equals()
+        self.tree_rebuild_tree()
+
+    def update_translations(self):
+        self.project.perform_updates()
+        self.project.mark_all_orphans_obsolete()
         self.tree_rebuild_tree()
 
     def clear_project(self):
@@ -812,6 +849,20 @@ class TranslationPanel(wx.Panel):
                 command,
                 context.Append(wx.ID_ANY, _("Save as patch.po"), "", wx.ITEM_NORMAL),
             )
+            def command(event):
+                for new_message in catalog.new.values():
+                    for cur_message in catalog:
+                        parents = [self.tree.GetItemParent(item) for item in cur_message.items]
+                        if catalog.workflow_orphans in parents:
+                            if lev_dist(new_message.id, cur_message.id, 3) < 3:
+                                new_message.string = copy(cur_message.string)
+                                break
+
+            self.Bind(
+                wx.EVT_MENU,
+                command,
+                context.Append(wx.ID_ANY, _("Fuzzy Match"), "", wx.ITEM_NORMAL),
+            )
         if menu.MenuItemCount != 0:
             self.PopupMenu(menu)
             menu.Destroy()
@@ -869,10 +920,10 @@ class PoboyWindow(wx.Frame):
         wxglade_tmp_menu = wx.Menu()
         item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Start Translation\tCtrl+T"), "")
         self.Bind(wx.EVT_MENU, self.on_menu_start_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Next Message\tCtrl+Down"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_next, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Copy Source\tAlt+Down"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_source, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Update Translations\tCtrl+U"), "")
+        self.Bind(wx.EVT_MENU, self.on_menu_update_translation, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Delete msgid==msgstr"), "")
+        self.Bind(wx.EVT_MENU, self.on_menu_update_delete_equals, item)
         self.main_menubar.Append(wxglade_tmp_menu, _("Translations"))
 
         wxglade_tmp_menu = wx.Menu()
@@ -914,6 +965,12 @@ class PoboyWindow(wx.Frame):
 
     def on_menu_start_translation(self, event):
         self.panel.init_translation_from_template()
+
+    def on_menu_update_delete_equals(self, event):
+        self.panel.delete_equals()
+
+    def on_menu_update_translation(self, event):
+        self.panel.update_translations()
 
     def on_menu_previous(self, event):  # wxGlade: MyFrame.<event_handler>
         self.panel.tree_move_to_previous()
@@ -994,6 +1051,25 @@ class PoboyApp(wx.App):
         basepath = os.path.abspath(os.path.dirname(sys.argv[0]))
         localedir = os.path.join(basepath, "locale")
         wx.Locale.AddCatalogLookupPathPrefix(localedir)
+
+
+@lru_cache(maxsize=4095)
+def lev_dist(s, t, limit=3):
+    if not s:
+        return len(t)
+    if not t:
+        return len(s)
+    best_case = abs(len(s) - len(t))
+    if best_case > limit:
+        # If the best we can do is going to exceed the limit, we're done.
+        return best_case
+    if s[0] == t[0]:
+        return lev_dist(s[1:], t[1:], limit)
+    l1 = lev_dist(s, t[1:], limit)
+    l2 = lev_dist(s[1:], t, limit)
+    l3 = lev_dist(s[1:], t[1:], limit)
+    dist = 1 + min(l1, l2, l3)
+    return dist
 
 
 def run():
