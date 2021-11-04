@@ -315,6 +315,19 @@ class TranslationProject:
                 if message.id == message.string:
                     message.string = None
 
+    def get_orphans(self, catalog):
+        template = self.catalogs[TEMPLATE]
+        if template is None:
+            return
+        for m in catalog._messages:
+            message = catalog._messages[m]
+            msgid = str(message.id)
+            name = msgid.strip()
+            if name == HEADER:
+                continue
+            if msgid not in template._messages:
+                yield message
+
     def mark_all_orphans_obsolete(self):
         template = self.catalogs[TEMPLATE]
         if template is None:
@@ -325,7 +338,7 @@ class TranslationProject:
             if name == HEADER:
                 continue
             for catalog in self.catalogs.values():
-                if msgid not in template._messages:
+                if msgid not in catalog._messages:
                     catalog.obsolete[msgid] = message.clone()
                     del catalog._messages[msgid]
 
@@ -338,7 +351,10 @@ class TranslationPanel(wx.Panel):
     def __init__(self, *args, **kwds):
         kwds["style"] = kwds.get("style", 0) | wx.TAB_TRAVERSAL
         wx.Panel.__init__(self, *args, **kwds)
-
+        self.color_translated = wx.Colour((0,127,0))
+        self.color_untranslated = wx.Colour((127, 0, 0))
+        self.color_template = wx.Colour((0, 0, 127))
+        self.color_template_translated = wx.Colour((0, 127, 127))
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.tree = wx.TreeCtrl(
@@ -556,6 +572,20 @@ class TranslationPanel(wx.Panel):
         except:
             self.open_save_template_dialog()
 
+    def colorize_by_message(self, item, message, template=False):
+        if message.string:
+            if template:
+                self.tree.SetItemTextColour(item, self.color_template_translated)
+            else:
+                self.tree.SetItemTextColour(item, self.color_translated)
+        else:
+            if template:
+                self.tree.SetItemTextColour(item, self.color_template)
+            else:
+                self.tree.SetItemTextColour(item, self.color_untranslated)
+
+
+
     def tree_rebuild_tree(self):
         tree = self.tree
         tree.DeleteChildren(self.root)
@@ -568,6 +598,7 @@ class TranslationPanel(wx.Panel):
                 if name == HEADER:
                     name = _("HEADER")
                 message.item = tree.AppendItem(catalog.item, name, data=(catalog, message))
+                self.colorize_by_message(message.item, message, True)
             self.template = catalog
         except KeyError:
             self.template = None
@@ -575,72 +606,72 @@ class TranslationPanel(wx.Panel):
         for m in self.project.catalogs:
             if m == TEMPLATE:
                 continue
-            else:
-                catalog = self.project.catalogs[m]
-                catalog.item = tree.AppendItem(self.root, m, data=(catalog, "root"))
-                if str(catalog.locale) != m:
-                    catalog.item = tree.AppendItem(catalog.item, _("%s, locale != directory") % str(catalog.locale), data=(catalog, "catalog_error"))
-                    tree.SetItemTextColour(catalog.item, wx.RED)
+            catalog = self.project.catalogs[m]
+            catalog.item = tree.AppendItem(self.root, m, data=(catalog, "root"))
+            if str(catalog.locale) != m:
+                catalog.item = tree.AppendItem(catalog.item, _("%s, locale != directory") % str(catalog.locale), data=(catalog, "catalog_error"))
+                tree.SetItemTextColour(catalog.item, wx.RED)
 
-                catalog.errors = tree.AppendItem(catalog.item, _("Errors"), data=(catalog, "errors"))
-                tree.SetItemTextColour(catalog.errors, wx.RED)
+            catalog.errors = tree.AppendItem(catalog.item, _("Errors"), data=(catalog, "errors"))
+            tree.SetItemTextColour(catalog.errors, wx.RED)
 
-                catalog.error_printf = tree.AppendItem(catalog.errors, _("printf-tokens"), data=(catalog, "error-printf"))
+            catalog.error_printf = tree.AppendItem(catalog.errors, _("printf-tokens"), data=(catalog, "error-printf"))
 
-                catalog.issues = tree.AppendItem(catalog.item, _("Issues"), data=(catalog, "issues"))
-                tree.SetItemTextColour(catalog.issues, wx.Colour(127, 127, 0))
+            catalog.issues = tree.AppendItem(catalog.item, _("Issues"), data=(catalog, "issues"))
+            tree.SetItemTextColour(catalog.issues, wx.Colour(127, 127, 0))
 
-                catalog.warning_equal = tree.AppendItem(catalog.issues, _("msgid==msgstr"), data=(catalog, "issue-equal"))
-                catalog.warning_start_capital = tree.AppendItem(
-                    catalog.issues, _("capitalization"), data=(catalog, "issue-capitals")
-                )
-                catalog.warning_end_punct = tree.AppendItem(
-                    catalog.issues, _("ending punctuation"), data=(catalog, "issue-punctuation")
-                )
-                catalog.warning_end_space = tree.AppendItem(
-                    catalog.issues, _("ending whitespace"), data=(catalog, "issue-ending-whitespace")
-                )
-                catalog.warning_double_space = tree.AppendItem(catalog.issues, _("double space"), data=(catalog, "issue-double-space"))
+            catalog.warning_equal = tree.AppendItem(catalog.issues, _("msgid==msgstr"), data=(catalog, "issue-equal"))
+            catalog.warning_start_capital = tree.AppendItem(
+                catalog.issues, _("capitalization"), data=(catalog, "issue-capitals")
+            )
+            catalog.warning_end_punct = tree.AppendItem(
+                catalog.issues, _("ending punctuation"), data=(catalog, "issue-punctuation")
+            )
+            catalog.warning_end_space = tree.AppendItem(
+                catalog.issues, _("ending whitespace"), data=(catalog, "issue-ending-whitespace")
+            )
+            catalog.warning_double_space = tree.AppendItem(catalog.issues, _("double space"), data=(catalog, "issue-double-space"))
 
-                catalog.workflow_obsolete = tree.AppendItem(
-                    catalog.item, _("Obsolete"), data=(catalog, "obsolete")
-                )
-                catalog.workflow_orphans = tree.AppendItem(
-                    catalog.item, _("Orphans"), data=(catalog, "orphan")
-                )
-                catalog.workflow_new = tree.AppendItem(
-                    catalog.item, _("New"), data=(catalog, "new")
-                )
-                catalog.workflow_untranslated = tree.AppendItem(
-                    catalog.item, _("Untranslated"), data=(catalog, "untranslated")
-                )
-                catalog.workflow_translated = tree.AppendItem(
-                    catalog.item, _("Translated"), data=(catalog, "translated")
-                )
-                catalog.workflow_all = tree.AppendItem(catalog.item, _("All"), data=(catalog, "all"))
-                for message in catalog:
-                    msgid = str(message.id)
-                    name = msgid.strip()
-                    if name == HEADER:
-                        name = _("HEADER")
-                    message.item = tree.AppendItem(catalog.workflow_all, name, data=(catalog, message))
-                    self.message_revalidate(catalog, message)
-                for m in catalog.obsolete:
-                    message = catalog.obsolete[m]
-                    msgid = str(message.id)
-                    name = msgid.strip()
-                    if name == HEADER:
-                        continue
-                    message.item = tree.AppendItem(catalog.workflow_obsolete, name, data=(catalog, message))
-                    # self.message_revalidate(catalog, message)
-                for m in catalog.new:
-                    message = catalog.new[m]
-                    msgid = str(message.id)
-                    name = msgid.strip()
-                    if name == HEADER:
-                        continue
-                    message.item = tree.AppendItem(catalog.workflow_new, name, data=(catalog, message))
-                    # self.message_revalidate(catalog, message)
+            catalog.workflow_new = tree.AppendItem(
+                catalog.item, _("New"), data=(catalog, "new")
+            )
+            catalog.workflow_orphans = tree.AppendItem(
+                catalog.item, _("Orphans"), data=(catalog, "orphan")
+            )
+            catalog.workflow_obsolete = tree.AppendItem(
+                catalog.item, _("Obsolete"), data=(catalog, "obsolete")
+            )
+            catalog.workflow_untranslated = tree.AppendItem(
+                catalog.item, _("Untranslated"), data=(catalog, "untranslated")
+            )
+            catalog.workflow_translated = tree.AppendItem(
+                catalog.item, _("Translated"), data=(catalog, "translated")
+            )
+            catalog.workflow_all = tree.AppendItem(catalog.item, _("All"), data=(catalog, "all"))
+            for message in catalog:
+                msgid = str(message.id)
+                name = msgid.strip()
+                if name == HEADER:
+                    name = _("HEADER")
+                message.item = tree.AppendItem(catalog.workflow_all, name, data=(catalog, message))
+                self.colorize_by_message(message.item, message)
+                self.message_revalidate(catalog, message)
+            for m in catalog.obsolete:
+                message = catalog.obsolete[m]
+                msgid = str(message.id)
+                name = msgid.strip()
+                if name == HEADER:
+                    continue
+                message.item = tree.AppendItem(catalog.workflow_obsolete, name, data=(catalog, message))
+                self.colorize_by_message(message.item, message)
+            for m in catalog.new:
+                message = catalog.new[m]
+                msgid = str(message.id)
+                name = msgid.strip()
+                if name == HEADER:
+                    continue
+                message.item = tree.AppendItem(catalog.workflow_new, name, data=(catalog, message))
+                self.colorize_by_message(message.item, message, True)
         tree.ExpandAll()
 
     def tree_move_to_next(self):
@@ -709,7 +740,9 @@ class TranslationPanel(wx.Panel):
             self.tree.Delete(item)
             items.remove(item)
         for item in adding:
-            items.append(self.tree.AppendItem(item, name, data=(catalog, message)))
+            new_item = self.tree.AppendItem(item, name, data=(catalog, message))
+            self.colorize_by_message(new_item, message)
+            items.append(new_item)
 
     def message_classify(self, catalog, message):
         """
@@ -734,6 +767,8 @@ class TranslationPanel(wx.Panel):
         template = self.template
         if template is not None:
             if message.id not in template._messages:
+                # Orphan
+                catalog.orphans[message.id] = message
                 classes.append(catalog.workflow_orphans)
 
         if msgid == msgstr:
@@ -808,12 +843,13 @@ class TranslationPanel(wx.Panel):
         context = menu
         if data == "orphan":
             def command(event):
-                for m in list(catalog._messages):
+                for m in list(catalog.orphans):
                     message = catalog[m]
                     parents = [self.tree.GetItemParent(item) for item in message.items]
                     if catalog.workflow_orphans in parents:
                         catalog.obsolete[m] = message
                         del catalog[m]
+                        del catalog.orphans[m]
 
                         for item in message.items:
                             self.tree.Delete(item)
@@ -826,13 +862,13 @@ class TranslationPanel(wx.Panel):
                 context.Append(wx.ID_ANY, _("Obsolete Orphans"), "", wx.ITEM_NORMAL),
             )
             def command(event):
-                for m in list(catalog._messages):
+                for m in list(catalog.orphans):
                     message = catalog[m]
-                    parents = [self.tree.GetItemParent(item) for item in message.items]
-                    if catalog.workflow_orphans in parents:
-                        for item in message.items:
-                            self.tree.Delete(item)
-                        del catalog[m]
+                    for item in message.items:
+                        self.tree.Delete(item)
+                    del catalog[m]
+                    del catalog.orphans[m]
+
             self.Bind(
                 wx.EVT_MENU,
                 command,
@@ -851,12 +887,14 @@ class TranslationPanel(wx.Panel):
             )
             def command(event):
                 for new_message in catalog.new.values():
-                    for cur_message in catalog:
-                        parents = [self.tree.GetItemParent(item) for item in cur_message.items]
-                        if catalog.workflow_orphans in parents:
-                            if lev_dist(new_message.id, cur_message.id, 3) < 3:
-                                new_message.string = copy(cur_message.string)
-                                break
+                    for cur_message in catalog.orphans.values():
+                        for cur_item in cur_message.items:
+                            parent = self.tree.GetItemParent(cur_item)
+                            if parent == catalog.workflow_orphans:
+                                if lev_dist(new_message.id, cur_message.id, 3) < 3:
+                                    new_message.string = copy(cur_message.string)
+                                    self.colorize_by_message(new_message.item, new_message, True)
+                                    break
 
             self.Bind(
                 wx.EVT_MENU,

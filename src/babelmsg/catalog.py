@@ -287,7 +287,9 @@ class Catalog(object):
         self.filename = filename
 
         self.new = OrderedDict() # Dictionary of new messages from template
+        self.orphans = OrderedDict()  # Dictionary of orphaned events from messages
         self.obsolete = OrderedDict()  # Dictionary of obsolete messages
+
         self._num_plurals = None
         self._plural_expr = None
 
