@@ -13,7 +13,7 @@ import re
 
 from cgi import parse_header
 from collections import OrderedDict
-from datetime import datetime, time as time_
+from datetime import datetime, time as time_, timezone
 from difflib import get_close_matches
 from email import message_from_string
 from copy import copy
@@ -416,14 +416,14 @@ class Catalog(object):
         headers.append(
             (
                 "POT-Creation-Date",
-                "yyyy-MM-dd HH:mmZ".format(datetime.now()),
+                datetime.now(timezone.utc).strftime("%y-%m-%d %H:%M%Z"),
             )
         )
         if isinstance(self.revision_date, (datetime, time_, int, float)):
             headers.append(
                 (
                     "PO-Revision-Date",
-                    "yyyy-MM-dd HH:mmZ".format(datetime.now()),
+                    datetime.now(timezone.utc).strftime("%y-%m-%d %H:%M%Z"),
                 )
             )
         else:
