@@ -334,6 +334,7 @@ class TranslationProject:
                 if message.id == message.string:
                     message.string = None
 
+
     def get_orphans(self, catalog):
         template = self.catalogs[TEMPLATE]
         if template is None:
@@ -514,8 +515,12 @@ class TranslationPanel(wx.Panel):
         self.tree_rebuild_tree()
 
     def delete_equals(self):
-        self.project.delete_equals()
-        self.tree_rebuild_tree()
+        for catalog in self.project.catalogs.values():
+            for message in catalog:
+                if message.id == message.string:
+                    message.string = None
+                    self.message_revalidate(catalog,message)
+        # self.tree_rebuild_tree()
 
     def full_update_translations(self):
         self.project.perform_full_updates()
