@@ -90,6 +90,7 @@ class Message(object):
             self.previous_id = list(previous_id)
         self.lineno = lineno
         self.context = context
+        self.modified = False
         self.items = items
         if self.items is None:
             self.items = list()
@@ -284,6 +285,7 @@ class Catalog(object):
         self.revision_date = revision_date
         self.fuzzy = fuzzy
 
+        self.modified = False
         self.filename = filename
 
         self.new = OrderedDict() # Dictionary of new messages from template
