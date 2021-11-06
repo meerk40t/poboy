@@ -696,7 +696,6 @@ class Catalog(object):
         :param id: the message ID
         :param message: the `Message` object
         """
-        assert isinstance(message, Message), "expected a Message object"
         key = self._key_for(id, message.context)
         current = self._messages.get(key)
         if current:
@@ -933,7 +932,7 @@ class Catalog(object):
                         else:
                             matchkey = key
                         matches = get_close_matches(
-                            matchkey.lower().strip(), fuzzy_candidates.keys(), 1
+                            matchkey.lower().strip(), fuzzy_candidates.keys(), 1, cutoff=.9
                         )
                         if matches:
                             newkey = matches[0]
