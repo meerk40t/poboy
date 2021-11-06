@@ -223,7 +223,7 @@ def save(catalog, filename=None, write_mo=True):
     if filename is None:
         raise FileNotFoundError
     with open(filename, "wb") as save:
-        pofile.write_po(save, catalog)
+        pofile.write_po(save, catalog, original_header=False)
     if filename.endswith(".pot") or not write_mo:
         return
     if filename.endswith(".po"):
@@ -845,6 +845,7 @@ class TranslationPanel(wx.Panel):
                             if parent == catalog.workflow_orphans:
                                 if lev_dist(new_message.id, cur_message.id, 3) < 3:
                                     new_message.string = copy(cur_message.string)
+                                    new_message.modified = True
                                     self.colorize_by_message(new_message.item, new_message, True)
                                     break
 
@@ -945,6 +946,7 @@ class SingleMessagePanel(wx.Panel):
                 self.selected_message.modified = True
             else:
                 self.selected_message.string[0] = self.text_translated_text.GetValue()
+                self.selected_message.modified = True
 
     def on_text_enter(self, event):
         t = None

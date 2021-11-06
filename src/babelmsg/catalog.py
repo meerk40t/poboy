@@ -282,6 +282,7 @@ class Catalog(object):
         self._header_comment = header_comment
         self._messages = OrderedDict()
 
+        self.original_header = None
         self.project = project or "PROJECT"
         self.version = version or "VERSION"
         self.copyright_holder = copyright_holder or "ORGANIZATION"
@@ -632,7 +633,7 @@ class Catalog(object):
         flags = set()
         if self.fuzzy:
             flags |= {"fuzzy"}
-        yield Message(u"", "\n".join(buf), flags=flags)
+        yield Message(u"", "\n".join(buf), flags=flags, original_lines=self.original_header)
         for key in self._messages:
             yield self._messages[key]
 
@@ -694,6 +695,7 @@ class Catalog(object):
             message = current
         elif id == "":
             # special treatment for the header message
+            self.original_header = message.original_lines
             self.mime_headers = message_from_string(message.string).items()
             self.header_comment = "\n".join(
                 [("# %s" % c).rstrip() for c in message.user_comments]

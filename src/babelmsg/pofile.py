@@ -513,6 +513,7 @@ def write_po(
     include_previous: bool = False,
     include_lineno: bool = True,
     original_if_available: bool = True,
+    original_header: bool = False,
 ):
     r"""Write a ``gettext`` PO (portable object) template file for a given
     message catalog to the provided file-like object.
@@ -557,6 +558,7 @@ def write_po(
                              updating the catalog
     :param include_lineno: include line number in the location comment
     :param original_if_available: write the original content if that content is availible.
+    :param original_header: write the original header if that content is availible.
     """
 
     def _normalize(key, prefix=""):
@@ -604,13 +606,13 @@ def write_po(
         sort_by = "location"
 
     for message in _sort_messages(catalog, sort_by=sort_by):
-        if original_if_available and not message.modified and message.original_lines:
-            for line in message.original_lines:
-                _write(line)
-            continue # Using original message.
         if not message.id:  # This is the header "message"
             if omit_header:
                 continue
+            if original_header and not message.modified and message.original_lines:
+                for line in message.original_lines:
+                    _write(line)
+                continue  # Using original message.
             comment_header = catalog.header_comment
             if width and width > 0:
                 lines = []
@@ -618,6 +620,12 @@ def write_po(
                     lines += wraptext(line, width=width, subsequent_indent="# ")
                 comment_header = u"\n".join(lines)
             _write(comment_header + u"\n")
+        else:
+            # non-header message.
+            if original_if_available and not message.modified and message.original_lines:
+                for line in message.original_lines:
+                    _write(line)
+                continue # Using original message.
 
         for comment in message.user_comments:
             _write_comment(comment)
@@ -660,6 +668,11 @@ def write_po(
 
     if not ignore_obsolete:
         for message in _sort_messages(catalog.obsolete.values(), sort_by=sort_by):
+            if original_if_available and not message.modified and message.original_lines:
+                for line in message.original_lines:
+                    _write(line)
+                continue  # Using original obsolete message
+
             for comment in message.user_comments:
                 _write_comment(comment)
             _write_message(message, prefix="#~ ")
