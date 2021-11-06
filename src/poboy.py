@@ -640,7 +640,7 @@ class TranslationPanel(wx.Panel):
         if t is None:
             return
         n = self.tree.GetPrevSibling(t)
-        self.message_revalidate(self.catalog, self.selected_message)
+        self.message_revalidate(self.catalog, self.panel_message_single.selected_message)
         if n.IsOk():
             self.tree.SelectItem(n)
 
