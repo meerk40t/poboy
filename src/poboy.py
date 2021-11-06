@@ -875,9 +875,9 @@ class SingleMessagePanel(wx.Panel):
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_comment.Add(sizer_3, 1, wx.EXPAND, 0)
 
-        self.checkbox_1 = wx.CheckBox(self, wx.ID_ANY, "Fuzzy")
-        self.checkbox_1.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
-        sizer_3.Add(self.checkbox_1, 0, 0, 0)
+        self.checkbox_fuzzy = wx.CheckBox(self, wx.ID_ANY, "Fuzzy")
+        self.checkbox_fuzzy.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_3.Add(self.checkbox_fuzzy, 0, 0, 0)
 
         self.text_original_text = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
         sizer_comment.Add(self.text_original_text, 6, wx.EXPAND, 0)
@@ -889,12 +889,16 @@ class SingleMessagePanel(wx.Panel):
 
         self.Layout()
 
-        self.Bind(wx.EVT_TEXT, self.on_text_translated, self.text_translated_text)
+        self.Bind(wx.EVT_CHECKBOX, self.on_check_message_fuzzy, self.checkbox_fuzzy)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_enter, self.text_translated_text)
+        self.Bind(wx.EVT_TEXT, self.on_text_translated, self.text_translated_text)
         self.text_translated_text.SetFocus()
         # end wxGlade
         self.selected_message = None
         self.selected_catalog = None
+
+    def on_check_message_fuzzy(self, event):
+        self.selected_message.fuzzy = self.checkbox_fuzzy.GetValue()
 
     def update_pane(self):
         message = self.selected_message
@@ -914,6 +918,7 @@ class SingleMessagePanel(wx.Panel):
             self.text_comment.Enable(True)
             self.text_original_text.Enable(True)
             self.text_translated_text.Enable(True)
+            self.checkbox_fuzzy.SetValue(message.fuzzy)
         else:
             self.text_comment.SetValue("")
             self.text_original_text.SetValue("")
@@ -930,6 +935,7 @@ class SingleMessagePanel(wx.Panel):
                 self.selected_message.string[0] = self.text_translated_text.GetValue()
 
     def on_text_enter(self, event):
+        print("Text enter")
         t = None
         for item in list(self.translation_panel.tree.GetSelections()):
             t = self.translation_panel.tree.GetNextSibling(item)
@@ -939,8 +945,6 @@ class SingleMessagePanel(wx.Panel):
             self.translation_panel.tree.SelectItem(t)
         self.text_translated_text.SetFocus()
 
-
-# end of class SingleMessagePanel
 
 class CatalogPanel(wx.Panel):
     def __init__(self, *args, **kwds):
@@ -1035,7 +1039,6 @@ class CatalogPanel(wx.Panel):
         self.text_custom_rules.SetLabelText(str(self.catalog.plural_expr))
         self.text_catalog_language_team.SetLabelText(self.catalog.language_team)
 
-# end of class CatalogPanel
 
 class StatisticsPanel(wx.Panel):
     def __init__(self, *args, **kwds):
@@ -1139,8 +1142,6 @@ class StatisticsPanel(wx.Panel):
         self.gauge_words.SetValue(trans)
 
 
-# end of class StatisticsPanel
-
 class TemplatePanel(wx.Panel):
     def __init__(self, *args, **kwds):
         # begin wxGlade: TemplatePanel.__init__
@@ -1219,8 +1220,6 @@ class TemplatePanel(wx.Panel):
     def update_pane(self):
         pass
 
-
-# end of class TemplatePanel
 
 class PoboyWindow(wx.Frame):
     def __init__(self, *args, **kwds):
@@ -1379,8 +1378,6 @@ class PoboyWindow(wx.Frame):
                 m.Enable(False)
             i += 1
         self.main_menubar.Append(wxglade_tmp_menu, _("Languages"))
-
-# end of class MyFrame
 
 
 class PoboyApp(wx.App):
