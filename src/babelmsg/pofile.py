@@ -166,6 +166,7 @@ class PoFileParser:
         self.in_msgid = False
         self.in_msgstr = False
         self.in_msgctxt = False
+        self.lines = []
 
     def _add_message(self):
         """
@@ -204,6 +205,7 @@ class PoFileParser:
             self.user_comments,
             lineno=self.offset + 1,
             context=msgctxt,
+            original_lines=self.lines,
         )
         if self.obsolete:
             if not self.ignore_obsolete:
@@ -318,6 +320,7 @@ class PoFileParser:
         """
 
         for lineno, line in enumerate(fileobj):
+            self.lines.append(line)
             line = line.strip()
             if not isinstance(line, str):
                 line = line.decode(self.catalog.charset)
@@ -510,6 +513,7 @@ def write_po(
     ignore_obsolete: bool = False,
     include_previous: bool = False,
     include_lineno: bool = True,
+    original_if_available: bool = True,
 ):
     r"""Write a ``gettext`` PO (portable object) template file for a given
     message catalog to the provided file-like object.
@@ -553,6 +557,7 @@ def write_po(
     :param include_previous: include the old msgid as a comment when
                              updating the catalog
     :param include_lineno: include line number in the location comment
+    :param original_if_available: write the original content if that content is availible.
     """
 
     def _normalize(key, prefix=""):
@@ -574,6 +579,11 @@ def write_po(
             _write("#%s %s\n" % (prefix, line.strip()))
 
     def _write_message(message, prefix=""):
+        if original_if_available and not message.modified and message.original_lines:
+            for line in message.original_lines:
+                _write("%s\n" % line)
+            return
+
         if isinstance(message.id, (list, tuple)):
             if message.context:
                 _write("%smsgctxt %s\n" % (prefix, _normalize(message.context, prefix)))

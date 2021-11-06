@@ -54,6 +54,8 @@ class Message(object):
         previous_id=(),
         lineno=None,
         context=None,
+        original_lines=None,
+        modified=False,
         items=None,
     ):
         """Create the message object.
@@ -90,7 +92,10 @@ class Message(object):
             self.previous_id = list(previous_id)
         self.lineno = lineno
         self.context = context
-        self.modified = False
+
+        self.original_lines = original_lines
+        self.modified = modified
+
         self.items = items
         if self.items is None:
             self.items = list()
@@ -140,6 +145,8 @@ class Message(object):
                     self.previous_id,
                     self.lineno,
                     self.context,
+                    self.original_lines,
+                    self.modified,
                 ),
             )
         )
@@ -178,6 +185,16 @@ class Message(object):
 
         :type:  `bool`"""
         return "fuzzy" in self.flags
+
+    @fuzzy.setter
+    def fuzzy(self, fuzzy: bool):
+        if fuzzy:
+            if "fuzzy" not in self.flags:
+                self.flags.add("fuzzy")
+        else:
+            if "fuzzy" in self.flags:
+                self.flags.discard("fuzzy")
+
 
     @property
     def pluralizable(self):

@@ -351,7 +351,7 @@ class TranslationProject:
 class TranslationPanel(wx.Panel):
     def __init__(self, *args, **kwds):
         # begin wxGlade: TranslationPanel.__init__
-        kwds["style"] = kwds.get("style", 0)
+        kwds["style"] = kwds.get("style", 0) | wx.WANTS_CHARS
         wx.Panel.__init__(self, *args, **kwds)
 
         self.color_translated = wx.Colour((0,127,0))
@@ -397,6 +397,7 @@ class TranslationPanel(wx.Panel):
 
         # end wxGlade
         self.template = None
+        self.catalog = None
         self.project = TranslationProject()
 
     def open_save_translation_dialog(self):
@@ -411,7 +412,7 @@ class TranslationPanel(wx.Panel):
             pathname = fileDialog.GetPath()
             if not pathname.lower().endswith(".po"):
                 pathname += ".po"
-            save(self.selected_catalog, pathname)
+            save(self.catalog, pathname)
             return pathname
 
     def open_save_template_dialog(self):
@@ -506,7 +507,7 @@ class TranslationPanel(wx.Panel):
         self.tree_rebuild_tree()
 
     def try_save_working_file_translation(self):
-        catalog = self.selected_catalog
+        catalog = self.catalog
         try:
             self.project.save(catalog)
         except:
@@ -627,7 +628,7 @@ class TranslationPanel(wx.Panel):
         if t is None:
             return
         n = self.tree.GetNextSibling(t)
-        self.message_revalidate(self.selected_catalog, self.selected_message)
+        self.message_revalidate(self.catalog, self.panel_message_single.selected_message)
         if n.IsOk():
             self.tree.SelectItem(n)
 
@@ -639,7 +640,7 @@ class TranslationPanel(wx.Panel):
         if t is None:
             return
         n = self.tree.GetPrevSibling(t)
-        self.message_revalidate(self.selected_catalog, self.selected_message)
+        self.message_revalidate(self.catalog, self.selected_message)
         if n.IsOk():
             self.tree.SelectItem(n)
 
@@ -763,6 +764,8 @@ class TranslationPanel(wx.Panel):
             print(data)
             if len(data) > 0:
                 catalog, info = data[0]
+                if catalog is not None:
+                    self.catalog = catalog
                 self.panel_message_single.selected_catalog = catalog
                 if isinstance(info, str):
                     if info == "root":
@@ -858,6 +861,10 @@ class TranslationPanel(wx.Panel):
     def translation_copy_original_to_translated(self):
         self.panel_message_single.text_translated_text.SetValue(self.panel_message_single.text_original_text.GetValue())
 
+    def force_new_line(self):
+        text = self.panel_message_single.text_translated_text
+        text.AppendText("\n")
+
 
 class SingleMessagePanel(wx.Panel):
     def __init__(self, *args, translation_panel=None, **kwds):
@@ -882,7 +889,7 @@ class SingleMessagePanel(wx.Panel):
         self.text_original_text = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
         sizer_comment.Add(self.text_original_text, 6, wx.EXPAND, 0)
 
-        self.text_translated_text = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE)
+        self.text_translated_text = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER)
         sizer_comment.Add(self.text_translated_text, 6, wx.EXPAND, 0)
 
         self.SetSizer(sizer_comment)
@@ -898,7 +905,8 @@ class SingleMessagePanel(wx.Panel):
         self.selected_catalog = None
 
     def on_check_message_fuzzy(self, event):
-        self.selected_message.fuzzy = self.checkbox_fuzzy.GetValue()
+        if self.selected_message is not None:
+            self.selected_message.fuzzy = self.checkbox_fuzzy.GetValue()
 
     def update_pane(self):
         message = self.selected_message
@@ -912,6 +920,8 @@ class SingleMessagePanel(wx.Panel):
                 msgstr = ""
             comments = list(message.auto_comments)
             comments.extend(message.user_comments)
+            print(message.locations)
+            # comments.extend(message.locations)
             self.text_comment.SetValue("\n".join(comments))
             self.text_original_text.SetValue(str(msgid))
             self.text_translated_text.SetValue(str(msgstr))
@@ -935,7 +945,6 @@ class SingleMessagePanel(wx.Panel):
                 self.selected_message.string[0] = self.text_translated_text.GetValue()
 
     def on_text_enter(self, event):
-        print("Text enter")
         t = None
         for item in list(self.translation_panel.tree.GetSelections()):
             t = self.translation_panel.tree.GetNextSibling(item)
@@ -1275,6 +1284,8 @@ class PoboyWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_next, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, "Copy Source\tAlt+Down", "")
         self.Bind(wx.EVT_MENU, self.on_menu_source, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "New Line\tShift+Enter", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_new_line, item)
         self.main_menubar.Append(wxglade_tmp_menu, "Navigate")
 
         self.add_language_menu()
@@ -1308,6 +1319,9 @@ class PoboyWindow(wx.Frame):
 
     def on_menu_source(self, event):
         self.panel.translation_copy_original_to_translated()
+
+    def on_menu_new_line(self, event):
+        self.panel.force_new_line()
 
     def on_menu_open(self, event):
         self.panel.open_generate_from_sources_dialog()
