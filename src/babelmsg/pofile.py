@@ -581,7 +581,7 @@ def write_po(
     def _write_message(message, prefix=""):
         if original_if_available and not message.modified and message.original_lines:
             for line in message.original_lines:
-                _write("%s\n" % line)
+                _write(line)
             return
 
         if isinstance(message.id, (list, tuple)):
