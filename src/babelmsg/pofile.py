@@ -319,20 +319,19 @@ class PoFileParser:
         units found in it to the `Catalog` supplied to the constructor.
         """
 
-        for lineno, line in enumerate(fileobj):
-            self.lines.append(line)
-            line = line.strip()
+        for lineno, original_line in enumerate(fileobj):
+            line = original_line.strip()
             if not isinstance(line, str):
                 line = line.decode(self.catalog.charset)
-            if not line:
-                continue
-            if line.startswith("#"):
-                if line[1:].startswith("~"):
-                    self._process_message_line(lineno, line[2:].lstrip(), obsolete=True)
+            if line:
+                if line.startswith("#"):
+                    if line[1:].startswith("~"):
+                        self._process_message_line(lineno, line[2:].lstrip(), obsolete=True)
+                    else:
+                        self._process_comment(line)
                 else:
-                    self._process_comment(line)
-            else:
-                self._process_message_line(lineno, line)
+                    self._process_message_line(lineno, line)
+            self.lines.append(original_line)
 
         self._finish_current_message()
 
@@ -579,10 +578,6 @@ def write_po(
             _write("#%s %s\n" % (prefix, line.strip()))
 
     def _write_message(message, prefix=""):
-        if original_if_available and not message.modified and message.original_lines:
-            for line in message.original_lines:
-                _write(line)
-            return
 
         if isinstance(message.id, (list, tuple)):
             if message.context:
@@ -609,6 +604,10 @@ def write_po(
         sort_by = "location"
 
     for message in _sort_messages(catalog, sort_by=sort_by):
+        if original_if_available and not message.modified and message.original_lines:
+            for line in message.original_lines:
+                _write(line)
+            continue # Using original message.
         if not message.id:  # This is the header "message"
             if omit_header:
                 continue

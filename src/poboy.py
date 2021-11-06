@@ -780,8 +780,7 @@ class TranslationPanel(wx.Panel):
                         self.panel_template.update_pane()
                 else:
                     self.show_message_panel()
-                    self.panel_message_single.selected_message = info
-                    self.panel_message_single.update_pane()
+                    self.panel_message_single.update_pane(info)
         except RuntimeError:
             pass
 
@@ -907,9 +906,10 @@ class SingleMessagePanel(wx.Panel):
     def on_check_message_fuzzy(self, event):
         if self.selected_message is not None:
             self.selected_message.fuzzy = self.checkbox_fuzzy.GetValue()
+            self.selected_message.modified = True
 
-    def update_pane(self):
-        message = self.selected_message
+    def update_pane(self, message):
+        self.selected_message = None
 
         if message is not None:
             msgid = message.id
@@ -936,11 +936,13 @@ class SingleMessagePanel(wx.Panel):
             self.text_comment.Enable(False)
             self.text_original_text.Enable(False)
             self.text_translated_text.Enable(False)
+        self.selected_message = message
 
     def on_text_translated(self, event):
         if self.selected_message:
             if not self.selected_message.pluralizable:
                 self.selected_message.string = self.text_translated_text.GetValue()
+                self.selected_message.modified = True
             else:
                 self.selected_message.string[0] = self.text_translated_text.GetValue()
 
