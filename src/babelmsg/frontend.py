@@ -836,7 +836,7 @@ class update_catalog(Command):
                     catalog = read_po(infile, locale=self.locale)
 
                 catalog.locale = self._locale
-                catalog.revision_date = datetime.now(LOCALTZ)
+                catalog.revision_date = datetime.now()
                 catalog.fuzzy = False
 
                 with open(filename, "wb") as outfile:
