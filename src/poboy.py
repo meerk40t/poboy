@@ -509,14 +509,14 @@ class TranslationPanel(wx.Panel):
     def try_save_working_file_translation(self):
         catalog = self.catalog
         try:
-            self.project.save(catalog)
-        except:
+            save(catalog)
+        except FileNotFoundError:
             self.open_save_translation_dialog()
 
     def try_save_working_file_template(self):
         try:
-            self.project.save(TEMPLATE)
-        except:
+            save(TEMPLATE)
+        except FileNotFoundError:
             self.open_save_template_dialog()
 
     def colorize_by_message(self, item, message, template=False):
@@ -799,6 +799,7 @@ class TranslationPanel(wx.Panel):
                     message = catalog[m]
                     parents = [self.tree.GetItemParent(item) for item in message.items]
                     if catalog.workflow_orphans in parents:
+                        message.modified = True
                         catalog.obsolete[m] = message
                         del catalog[m]
                         del catalog.orphans[m]
@@ -816,6 +817,7 @@ class TranslationPanel(wx.Panel):
             def command(event):
                 for m in list(catalog.orphans):
                     message = catalog[m]
+                    message.modified = True
                     for item in message.items:
                         self.tree.Delete(item)
                     del catalog[m]
