@@ -232,6 +232,7 @@ def save(catalog, filename=None, write_mo=True):
     with open(filename, "wb") as save:
         mofile.write_mo(save, catalog)
 
+
 def load(filename):
     with open(filename, "r", encoding="utf-8") as file:
         catalog = pofile.read_po(file)
@@ -349,13 +350,14 @@ class TranslationProject:
 
 class TranslationPanel(wx.Panel):
     def __init__(self, *args, **kwds):
-        kwds["style"] = kwds.get("style", 0) | wx.TAB_TRAVERSAL
+        # begin wxGlade: TranslationPanel.__init__
+        kwds["style"] = kwds.get("style", 0)
         wx.Panel.__init__(self, *args, **kwds)
+
         self.color_translated = wx.Colour((0,127,0))
         self.color_untranslated = wx.Colour((127, 0, 0))
         self.color_template = wx.Colour((0, 0, 127))
         self.color_template_translated = wx.Colour((0, 127, 127))
-        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.tree = wx.TreeCtrl(
             self,
@@ -367,91 +369,35 @@ class TranslationPanel(wx.Panel):
             | wx.TR_TWIST_BUTTONS,
         )
         self.root = self.tree.AddRoot(_("Project"))
-        main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
         self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_tree_menu)
 
-        self.panel_message = wx.Panel(self, wx.ID_ANY)
-        main_sizer.Add(self.panel_message, 3, wx.EXPAND, 0)
+        self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
-        message_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.panel_message_single = SingleMessagePanel(self, wx.ID_ANY, translation_panel=self)
+        self.main_sizer.Add(self.panel_message_single, 3, wx.EXPAND, 0)
 
-        self.text_comment = wx.TextCtrl(
-            self.panel_message, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
-        )
-        self.text_comment.SetFont(
-            wx.Font(
-                15,
-                wx.FONTFAMILY_DEFAULT,
-                wx.FONTSTYLE_NORMAL,
-                wx.FONTWEIGHT_NORMAL,
-                0,
-                "Segoe UI",
-            )
-        )
-        message_sizer.Add(self.text_comment, 3, wx.EXPAND, 0)
+        sizer_catalog_statistics = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer.Add(sizer_catalog_statistics, 3, wx.EXPAND, 0)
 
-        fuzzy_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        message_sizer.Add(fuzzy_sizer, 1, wx.EXPAND, 0)
+        self.panel_catalog = CatalogPanel(self, wx.ID_ANY)
+        sizer_catalog_statistics.Add(self.panel_catalog, 3, wx.EXPAND, 0)
 
-        self.check_fuzzy = wx.CheckBox(self.panel_message, wx.ID_ANY, _("Fuzzy"))
-        self.check_fuzzy.SetFont(
-            wx.Font(
-                15,
-                wx.FONTFAMILY_DEFAULT,
-                wx.FONTSTYLE_NORMAL,
-                wx.FONTWEIGHT_NORMAL,
-                0,
-                "Segoe UI",
-            )
-        )
-        fuzzy_sizer.Add(self.check_fuzzy, 0, 0, 0)
+        self.panel_statistics = StatisticsPanel(self, wx.ID_ANY)
+        sizer_catalog_statistics.Add(self.panel_statistics, 1, wx.EXPAND, 0)
 
-        self.text_original_text = wx.TextCtrl(
-            self.panel_message, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
-        )
-        self.text_original_text.SetFont(
-            wx.Font(
-                20,
-                wx.FONTFAMILY_DEFAULT,
-                wx.FONTSTYLE_NORMAL,
-                wx.FONTWEIGHT_NORMAL,
-                0,
-                "Segoe UI",
-            )
-        )
-        message_sizer.Add(self.text_original_text, 6, wx.EXPAND, 0)
+        self.panel_template = TemplatePanel(self, wx.ID_ANY)
+        self.main_sizer.Add(self.panel_template, 3, wx.EXPAND, 0)
 
-        self.text_translated_text = wx.TextCtrl(
-            self.panel_message, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER
-        )
-        self.text_translated_text.SetFont(
-            wx.Font(
-                20,
-                wx.FONTFAMILY_DEFAULT,
-                wx.FONTSTYLE_NORMAL,
-                wx.FONTWEIGHT_NORMAL,
-                0,
-                "Segoe UI",
-            )
-        )
-        message_sizer.Add(self.text_translated_text, 6, wx.EXPAND, 0)
+        self.SetSizer(self.main_sizer)
 
-        self.panel_message.SetSizer(message_sizer)
+        self.show_message_panel()
 
-        self.SetSizer(main_sizer)
-
-        self.Layout()
-
-        self.Bind(wx.EVT_TEXT, self.on_text_translated, self.text_translated_text)
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_enter, self.text_translated_text)
-        self.text_translated_text.SetFocus()
         # end wxGlade
         self.template = None
         self.project = TranslationProject()
-        self.selected_message = None
-        self.selected_catalog = None
 
     def open_save_translation_dialog(self):
         with wx.FileDialog(
@@ -584,14 +530,12 @@ class TranslationPanel(wx.Panel):
             else:
                 self.tree.SetItemTextColour(item, self.color_untranslated)
 
-
-
     def tree_rebuild_tree(self):
         tree = self.tree
         tree.DeleteChildren(self.root)
         try:
             catalog = self.project.catalogs[TEMPLATE]
-            catalog.item = tree.AppendItem(self.root, _("Template"))
+            catalog.item = tree.AppendItem(self.root, _("Template"), data=(catalog, "template"))
             for message in catalog:
                 msgid = str(message.id)
                 name = msgid.strip()
@@ -673,6 +617,7 @@ class TranslationPanel(wx.Panel):
                 message.item = tree.AppendItem(catalog.workflow_new, name, data=(catalog, message))
                 self.colorize_by_message(message.item, message, True)
         tree.ExpandAll()
+        self.Layout()
 
     def tree_move_to_next(self):
         t = None
@@ -791,31 +736,26 @@ class TranslationPanel(wx.Panel):
             classes.append(catalog.warning_double_space)
         return classes
 
-    def update_gui_translation_pane(self):
-        message = self.selected_message
+    def show_message_panel(self):
+        self.panel_message_single.Show()
+        self.panel_statistics.Hide()
+        self.panel_template.Hide()
+        self.panel_catalog.Hide()
+        self.Layout()
 
-        if message is not None:
-            msgid = message.id
-            if msgid is None:
-                msgid = ""
-            msgstr = message.string
-            if msgstr is None:
-                msgstr = ""
-            comments = list(message.auto_comments)
-            comments.extend(message.user_comments)
-            self.text_comment.SetValue("\n".join(comments))
-            self.text_original_text.SetValue(str(msgid))
-            self.text_translated_text.SetValue(str(msgstr))
-            self.text_comment.Enable(True)
-            self.text_original_text.Enable(True)
-            self.text_translated_text.Enable(True)
-        else:
-            self.text_comment.SetValue("")
-            self.text_original_text.SetValue("")
-            self.text_translated_text.SetValue("")
-            self.text_comment.Enable(False)
-            self.text_original_text.Enable(False)
-            self.text_translated_text.Enable(False)
+    def show_catalog_panel(self):
+        self.panel_message_single.Hide()
+        self.panel_statistics.Show()
+        self.panel_catalog.Show()
+        self.panel_template.Hide()
+        self.Layout()
+
+    def show_template_panel(self):
+        self.panel_message_single.Hide()
+        self.panel_statistics.Hide()
+        self.panel_catalog.Hide()
+        self.panel_template.Show()
+        self.Layout()
 
     def on_tree_selection(self, event):
         try:
@@ -823,12 +763,22 @@ class TranslationPanel(wx.Panel):
             print(data)
             if len(data) > 0:
                 catalog, info = data[0]
-                self.selected_catalog = catalog
+                self.panel_message_single.selected_catalog = catalog
                 if isinstance(info, str):
-                    self.selected_message = None
+                    if info == "root":
+                        self.show_catalog_panel()
+                        self.panel_catalog.catalog = catalog
+                        self.panel_statistics.catalog = catalog
+                        self.panel_catalog.update_pane()
+                        self.panel_statistics.update_pane()
+                    elif info == "template":
+                        self.show_template_panel()
+                        self.panel_template.template = catalog
+                        self.panel_template.update_pane()
                 else:
-                    self.selected_message = info
-                self.update_gui_translation_pane()
+                    self.show_message_panel()
+                    self.panel_message_single.selected_message = info
+                    self.panel_message_single.update_pane()
         except RuntimeError:
             pass
 
@@ -905,7 +855,74 @@ class TranslationPanel(wx.Panel):
             self.PopupMenu(menu)
             menu.Destroy()
 
-    def on_text_translated(self, event):  # wxGlade: TranslationPanel.<event_handler>
+    def translation_copy_original_to_translated(self):
+        self.panel_message_single.text_translated_text.SetValue(self.panel_message_single.text_original_text.GetValue())
+
+
+class SingleMessagePanel(wx.Panel):
+    def __init__(self, *args, translation_panel=None, **kwds):
+        # begin wxGlade: SingleMessagePanel.__init__
+        kwds["style"] = kwds.get("style", 0)
+        wx.Panel.__init__(self, *args, **kwds)
+
+        self.translation_panel=translation_panel
+
+        sizer_comment = wx.BoxSizer(wx.VERTICAL)
+
+        self.text_comment = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
+        sizer_comment.Add(self.text_comment, 3, wx.EXPAND, 0)
+
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_comment.Add(sizer_3, 1, wx.EXPAND, 0)
+
+        self.checkbox_1 = wx.CheckBox(self, wx.ID_ANY, "Fuzzy")
+        self.checkbox_1.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+        sizer_3.Add(self.checkbox_1, 0, 0, 0)
+
+        self.text_original_text = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
+        sizer_comment.Add(self.text_original_text, 6, wx.EXPAND, 0)
+
+        self.text_translated_text = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE)
+        sizer_comment.Add(self.text_translated_text, 6, wx.EXPAND, 0)
+
+        self.SetSizer(sizer_comment)
+
+        self.Layout()
+
+        self.Bind(wx.EVT_TEXT, self.on_text_translated, self.text_translated_text)
+        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_enter, self.text_translated_text)
+        self.text_translated_text.SetFocus()
+        # end wxGlade
+        self.selected_message = None
+        self.selected_catalog = None
+
+    def update_pane(self):
+        message = self.selected_message
+
+        if message is not None:
+            msgid = message.id
+            if msgid is None:
+                msgid = ""
+            msgstr = message.string
+            if msgstr is None:
+                msgstr = ""
+            comments = list(message.auto_comments)
+            comments.extend(message.user_comments)
+            self.text_comment.SetValue("\n".join(comments))
+            self.text_original_text.SetValue(str(msgid))
+            self.text_translated_text.SetValue(str(msgstr))
+            self.text_comment.Enable(True)
+            self.text_original_text.Enable(True)
+            self.text_translated_text.Enable(True)
+        else:
+            self.text_comment.SetValue("")
+            self.text_original_text.SetValue("")
+            self.text_translated_text.SetValue("")
+            self.text_comment.Enable(False)
+            self.text_original_text.Enable(False)
+            self.text_translated_text.Enable(False)
+
+    def on_text_translated(self, event):
         if self.selected_message:
             if not self.selected_message.pluralizable:
                 self.selected_message.string = self.text_translated_text.GetValue()
@@ -914,17 +931,296 @@ class TranslationPanel(wx.Panel):
 
     def on_text_enter(self, event):
         t = None
-        for item in list(self.tree.GetSelections()):
-            t = self.tree.GetNextSibling(item)
+        for item in list(self.translation_panel.tree.GetSelections()):
+            t = self.translation_panel.tree.GetNextSibling(item)
         if self.selected_message is not None and self.selected_catalog is not None:
-            self.message_revalidate(self.selected_catalog, self.selected_message)
+            self.translation_panel.message_revalidate(self.selected_catalog, self.selected_message)
         if t is not None and t.IsOk():
-            self.tree.SelectItem(t)
+            self.translation_panel.tree.SelectItem(t)
         self.text_translated_text.SetFocus()
 
-    def translation_copy_original_to_translated(self):
-        self.text_translated_text.SetValue(self.text_original_text.GetValue())
 
+# end of class SingleMessagePanel
+
+class CatalogPanel(wx.Panel):
+    def __init__(self, *args, **kwds):
+        # begin wxGlade: CatalogPanel.__init__
+        kwds["style"] = kwds.get("style", 0)
+        wx.Panel.__init__(self, *args, **kwds)
+
+        sizer_catalog = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Catalog"), wx.VERTICAL)
+
+        sizer_7 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project name and version"), wx.VERTICAL)
+        sizer_catalog.Add(sizer_7, 0, wx.EXPAND, 0)
+
+        self.text_catalog_project_name = wx.TextCtrl(self, wx.ID_ANY, "")
+        sizer_7.Add(self.text_catalog_project_name, 0, wx.EXPAND, 0)
+
+        sizer_6 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Language Team"), wx.VERTICAL)
+        sizer_catalog.Add(sizer_6, 0, wx.EXPAND, 0)
+
+        self.text_catalog_language_team = wx.TextCtrl(self, wx.ID_ANY, "")
+        sizer_6.Add(self.text_catalog_language_team, 0, wx.EXPAND, 0)
+
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Language"), wx.VERTICAL)
+        sizer_catalog.Add(sizer_5, 0, wx.EXPAND, 0)
+
+        self.combo_catalog_language = wx.ComboBox(self, wx.ID_ANY, choices=[], style=wx.CB_DROPDOWN)
+        sizer_5.Add(self.combo_catalog_language, 0, wx.EXPAND, 0)
+
+        sizer_8 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Plurals"), wx.VERTICAL)
+        sizer_catalog.Add(sizer_8, 0, wx.EXPAND, 0)
+
+        self.radio_button_rules_default = wx.RadioButton(self, wx.ID_ANY, "Default Language Rules", style=wx.RB_GROUP)
+        self.radio_button_rules_default.SetValue(1)
+        sizer_8.Add(self.radio_button_rules_default, 0, 0, 0)
+
+        self.radio_button_rules_custom = wx.RadioButton(self, wx.ID_ANY, "Use custom rules")
+        sizer_8.Add(self.radio_button_rules_custom, 0, 0, 0)
+
+        self.text_custom_rules = wx.TextCtrl(self, wx.ID_ANY, "")
+        self.text_custom_rules.Enable(False)
+        sizer_8.Add(self.text_custom_rules, 0, wx.EXPAND, 0)
+
+        sizer_9 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Charset"), wx.VERTICAL)
+        sizer_catalog.Add(sizer_9, 0, wx.EXPAND, 0)
+
+        self.combo_catalog_charset = wx.ComboBox(self, wx.ID_ANY, choices=["UTF-8", ""], style=wx.CB_DROPDOWN)
+        self.combo_catalog_charset.SetSelection(0)
+        sizer_9.Add(self.combo_catalog_charset, 0, wx.EXPAND, 0)
+
+        self.SetSizer(sizer_catalog)
+
+        self.Layout()
+
+        self.Bind(wx.EVT_TEXT, self.on_text_catalog_project_name, self.text_catalog_project_name)
+        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_catalog_project_name, self.text_catalog_project_name)
+        self.Bind(wx.EVT_TEXT, self.on_text_catalog_project_team, self.text_catalog_language_team)
+        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_catalog_project_name, self.text_catalog_language_team)
+        self.Bind(wx.EVT_COMBOBOX, self.on_combo_catalog_language, self.combo_catalog_language)
+        self.Bind(wx.EVT_RADIOBUTTON, self.on_radio_catalog_plural, self.radio_button_rules_default)
+        self.Bind(wx.EVT_RADIOBUTTON, self.on_radio_catalog_plural, self.radio_button_rules_custom)
+        self.Bind(wx.EVT_TEXT, self.on_text_catalog_custom_rules, self.text_custom_rules)
+        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_catalog_custom_rules, self.text_custom_rules)
+        self.Bind(wx.EVT_COMBOBOX, self.on_combo_catalog_charset, self.combo_catalog_charset)
+        # end wxGlade
+        self.catalog = None
+
+    def on_text_catalog_project_name(self, event):  # wxGlade: CatalogPanel.<event_handler>
+        print("Event handler 'on_text_catalog_project_name' not implemented!")
+        event.Skip()
+
+    def on_text_catalog_project_team(self, event):  # wxGlade: CatalogPanel.<event_handler>
+        print("Event handler 'on_text_catalog_project_team' not implemented!")
+        event.Skip()
+
+    def on_combo_catalog_language(self, event):  # wxGlade: CatalogPanel.<event_handler>
+        print("Event handler 'on_combo_catalog_language' not implemented!")
+        event.Skip()
+
+    def on_radio_catalog_plural(self, event):  # wxGlade: CatalogPanel.<event_handler>
+        print("Event handler 'on_radio_catalog_plural' not implemented!")
+        event.Skip()
+
+    def on_text_catalog_custom_rules(self, event):  # wxGlade: CatalogPanel.<event_handler>
+        print("Event handler 'on_text_catalog_custom_rules' not implemented!")
+        event.Skip()
+
+    def on_combo_catalog_charset(self, event):  # wxGlade: CatalogPanel.<event_handler>
+        print("Event handler 'on_combo_catalog_charset' not implemented!")
+        event.Skip()
+
+    def update_pane(self):
+        self.text_catalog_project_name.SetLabelText(self.catalog.project)
+        self.text_custom_rules.SetLabelText(str(self.catalog.plural_expr))
+        self.text_catalog_language_team.SetLabelText(self.catalog.language_team)
+
+# end of class CatalogPanel
+
+class StatisticsPanel(wx.Panel):
+    def __init__(self, *args, **kwds):
+        # begin wxGlade: StatisticsPanel.__init__
+        kwds["style"] = kwds.get("style", 0)
+        wx.Panel.__init__(self, *args, **kwds)
+
+        sizer_statistics = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistics"), wx.VERTICAL)
+
+        sizer_words_statistics = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Words Translated"), wx.VERTICAL)
+        sizer_statistics.Add(sizer_words_statistics, 0, wx.EXPAND, 0)
+
+        sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_words_statistics.Add(sizer_12, 1, wx.EXPAND, 0)
+
+        self.text_words_translated = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        sizer_12.Add(self.text_words_translated, 0, 0, 0)
+
+        label_1 = wx.StaticText(self, wx.ID_ANY, "/")
+        sizer_12.Add(label_1, 0, 0, 0)
+
+        self.text_words_total = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        sizer_12.Add(self.text_words_total, 0, 0, 0)
+
+        self.gauge_words = wx.Gauge(self, wx.ID_ANY, 10)
+        sizer_words_statistics.Add(self.gauge_words, 0, wx.EXPAND, 0)
+
+        sizer_messages_statistics = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Messages Translated"), wx.VERTICAL)
+        sizer_statistics.Add(sizer_messages_statistics, 0, wx.EXPAND, 0)
+
+        sizer_13 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_messages_statistics.Add(sizer_13, 1, wx.EXPAND, 0)
+
+        self.text_messages_translated = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        sizer_13.Add(self.text_messages_translated, 0, 0, 0)
+
+        label_2 = wx.StaticText(self, wx.ID_ANY, "/")
+        sizer_13.Add(label_2, 0, 0, 0)
+
+        self.text_messages_total = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        sizer_13.Add(self.text_messages_total, 0, 0, 0)
+
+        self.gauge_messages = wx.Gauge(self, wx.ID_ANY, 10)
+        sizer_messages_statistics.Add(self.gauge_messages, 0, wx.EXPAND, 0)
+
+        sizer_file_info = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "File Information"), wx.VERTICAL)
+        sizer_statistics.Add(sizer_file_info, 0, wx.EXPAND, 0)
+
+        sizer_14 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "File Type:"), wx.VERTICAL)
+        sizer_file_info.Add(sizer_14, 0, wx.EXPAND, 0)
+
+        self.text_file_type = wx.TextCtrl(self, wx.ID_ANY, "Gettext Portable Object File", style=wx.TE_READONLY)
+        sizer_14.Add(self.text_file_type, 0, wx.EXPAND, 0)
+
+        sizer_15 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "File Size:"), wx.VERTICAL)
+        sizer_file_info.Add(sizer_15, 0, wx.EXPAND, 0)
+
+        self.text_file_size = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        sizer_15.Add(self.text_file_size, 0, wx.EXPAND, 0)
+
+        sizer_16 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Location:"), wx.VERTICAL)
+        sizer_file_info.Add(sizer_16, 0, wx.EXPAND, 0)
+
+        self.text_file_location = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        sizer_16.Add(self.text_file_location, 0, wx.EXPAND, 0)
+
+        self.SetSizer(sizer_statistics)
+
+        self.Layout()
+        # end wxGlade
+        self.catalog = None
+
+    def update_pane(self):
+        self.text_file_location.SetLabelText(self.catalog.filename)
+        filesize = 0
+        if os.path.exists(self.catalog.filename):
+            filesize = os.path.getsize(self.catalog.filename)
+        self.text_file_size.SetLabelText(str(filesize))
+        if self.catalog.filename is None or self.catalog.filename.endswith(".pot"):
+            self.text_file_type.SetLabelText("Gettext Portable Object Template")
+        else:
+            self.text_file_type.SetLabelText("Gettext Portable Object File")
+        total = len(self.catalog._messages)
+        self.text_messages_total.SetLabelText(str(total))
+        translated = [m for m in self.catalog._messages.values() if m.string != "" and m.string is not None]
+        trans = len(translated)
+        self.text_messages_translated.SetLabelText(str(trans))
+        self.gauge_messages.SetRange(total)
+        self.gauge_messages.SetValue(trans)
+
+        total_words = 0
+        trans_words = 0
+        for message in self.catalog._messages.values():
+            words = len(message.id.split(" "))
+            total_words += words
+            if message.string is not None and message.string != "":
+                trans_words += words
+        self.text_words_total.SetLabelText(str(total_words))
+        self.text_words_translated.SetLabelText(str(trans_words))
+        self.gauge_words.SetRange(total)
+        self.gauge_words.SetValue(trans)
+
+
+# end of class StatisticsPanel
+
+class TemplatePanel(wx.Panel):
+    def __init__(self, *args, **kwds):
+        # begin wxGlade: TemplatePanel.__init__
+        kwds["style"] = kwds.get("style", 0)
+        wx.Panel.__init__(self, *args, **kwds)
+
+        sizer_11 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Template"), wx.VERTICAL)
+
+        sizer_17 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project Name"), wx.VERTICAL)
+        sizer_11.Add(sizer_17, 0, wx.EXPAND, 0)
+
+        self.text_template_project_name = wx.TextCtrl(self, wx.ID_ANY, "")
+        sizer_17.Add(self.text_template_project_name, 0, wx.EXPAND, 0)
+
+        sizer_18 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Team"), wx.VERTICAL)
+        sizer_11.Add(sizer_18, 0, wx.EXPAND, 0)
+
+        self.text_project_language_team = wx.TextCtrl(self, wx.ID_ANY, "")
+        sizer_18.Add(self.text_project_language_team, 0, wx.EXPAND, 0)
+
+        sizer_21 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Charset"), wx.VERTICAL)
+        sizer_11.Add(sizer_21, 0, wx.EXPAND, 0)
+
+        self.combo_template_charset = wx.ComboBox(self, wx.ID_ANY, choices=["UTF-8", ""], style=wx.CB_DROPDOWN)
+        self.combo_template_charset.SetSelection(0)
+        sizer_21.Add(self.combo_template_charset, 0, wx.EXPAND, 0)
+
+        sizer_19 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Structure"), wx.VERTICAL)
+        sizer_11.Add(sizer_19, 1, wx.EXPAND, 0)
+
+        self.text_template_structure = wx.TextCtrl(self, wx.ID_ANY, "/locale/LC_MESSAGES/<lang>/<project>.po")
+        sizer_19.Add(self.text_template_structure, 0, wx.EXPAND, 0)
+
+        label_3 = wx.StaticText(self, wx.ID_ANY, "* <lang>: language")
+        sizer_19.Add(label_3, 0, 0, 0)
+
+        label_4 = wx.StaticText(self, wx.ID_ANY, "* <project>: project name")
+        sizer_19.Add(label_4, 0, 0, 0)
+
+        label_5 = wx.StaticText(self, wx.ID_ANY, "* <locale>: locale")
+        sizer_19.Add(label_5, 0, 0, 0)
+
+        label_6 = wx.StaticText(self, wx.ID_ANY, "* <team>: team")
+        sizer_19.Add(label_6, 0, 0, 0)
+
+        self.SetSizer(sizer_11)
+
+        self.Layout()
+
+        self.Bind(wx.EVT_TEXT, self.on_text_template_name, self.text_template_project_name)
+        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_name, self.text_template_project_name)
+        self.Bind(wx.EVT_TEXT, self.on_text_template_team, self.text_project_language_team)
+        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_team, self.text_project_language_team)
+        self.Bind(wx.EVT_COMBOBOX, self.on_combo_template_charset, self.combo_template_charset)
+        self.Bind(wx.EVT_TEXT, self.on_text_template_structure, self.text_template_structure)
+        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_structure, self.text_template_structure)
+        # end wxGlade
+        self.template = None
+
+    def on_text_template_name(self, event):  # wxGlade: TemplatePanel.<event_handler>
+        print("Event handler 'on_text_template_name' not implemented!")
+        event.Skip()
+
+    def on_text_template_team(self, event):  # wxGlade: TemplatePanel.<event_handler>
+        print("Event handler 'on_text_template_team' not implemented!")
+        event.Skip()
+
+    def on_combo_template_charset(self, event):  # wxGlade: TemplatePanel.<event_handler>
+        print("Event handler 'on_combo_template_charset' not implemented!")
+        event.Skip()
+
+    def on_text_template_structure(self, event):  # wxGlade: TemplatePanel.<event_handler>
+        print("Event handler 'on_text_template_structure' not implemented!")
+        event.Skip()
+
+    def update_pane(self):
+        pass
+
+
+# end of class TemplatePanel
 
 class PoboyWindow(wx.Frame):
     def __init__(self, *args, **kwds):
@@ -940,41 +1236,47 @@ class PoboyWindow(wx.Frame):
         # Menu Bar
         self.main_menubar = wx.MenuBar()
         wxglade_tmp_menu = wx.Menu()
-
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("New\tCtrl+N"), "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "New\tCtrl+N", "")
         self.Bind(wx.EVT_MENU, self.on_menu_new, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Open Project Directory\tCtrl+O"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_open_sources, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Translation\tCtrl+S"), "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Open Project Directory\tCtrl+O", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_open, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation\tCtrl+S", "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Template\tCtrl+Shift+S"), "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template\tCtrl+Shift+S", "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_template, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Translation as"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_save_translation_as, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Save Template as"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_save_template_as, item)
-        self.main_menubar.Append(wxglade_tmp_menu, _("File"))
-
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation as", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_save_as_translation, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template as", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_save_as_template, item)
+        self.main_menubar.Append(wxglade_tmp_menu, "File")
         wxglade_tmp_menu = wx.Menu()
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Start Translation\tCtrl+T"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_start_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Update Translations\tCtrl+U"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_update_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Delete msgid==msgstr"), "")
-        self.Bind(wx.EVT_MENU, self.on_menu_update_delete_equals, item)
-        self.main_menubar.Append(wxglade_tmp_menu, _("Translations"))
-
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Start New Translation", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_action_new_translation, item)
+        wxglade_tmp_menu_sub = wx.Menu()
+        item = wxglade_tmp_menu_sub.Append(wx.ID_ANY, "Delete msgid==msgstr", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_translation_delete_equal, item)
+        item = wxglade_tmp_menu_sub.Append(wx.ID_ANY, "Obsolete all orphans", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_obsolete_orphans, item)
+        item = wxglade_tmp_menu_sub.Append(wx.ID_ANY, "Delete all orphans", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_delete_orphans, item)
+        item = wxglade_tmp_menu_sub.Append(wx.ID_ANY, "Delete all obsolete", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_delete_orphans, item)
+        item = wxglade_tmp_menu_sub.Append(wx.ID_ANY, "Move New to Messages", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_move_new, item)
+        item = wxglade_tmp_menu_sub.Append(wx.ID_ANY, "Fuzzy Match New Messages", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_fuzzy_match, item)
+        wxglade_tmp_menu.Append(wx.ID_ANY, "All Translations", wxglade_tmp_menu_sub, "")
+        self.main_menubar.Append(wxglade_tmp_menu, "Actions")
         wxglade_tmp_menu = wx.Menu()
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Previous Message\tCtrl+Up"), "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Previous Entry\tCtrl+Up", "")
         self.Bind(wx.EVT_MENU, self.on_menu_previous, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Next Message\tCtrl+Down"), "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Next Entry\tCtrl+Down", "")
         self.Bind(wx.EVT_MENU, self.on_menu_next, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, _("Copy Source\tAlt+Down"), "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Copy Source\tAlt+Down", "")
         self.Bind(wx.EVT_MENU, self.on_menu_source, item)
-        self.main_menubar.Append(wxglade_tmp_menu, _("Navigate"))
+        self.main_menubar.Append(wxglade_tmp_menu, "Navigate")
 
         self.add_language_menu()
-
         self.SetMenuBar(self.main_menubar)
         # Menu Bar end
 
@@ -982,42 +1284,60 @@ class PoboyWindow(wx.Frame):
         _icon.CopyFromBitmap(icons8_translation_50.GetBitmap())
         self.SetIcon(_icon)
         self.SetTitle(_("POboy"))
+        self.Layout()
+        # end wxGlade
 
     def on_menu_new(self, event):
         self.panel.clear_project()
 
-    def on_menu_open_sources(self, event):
-        self.panel.open_generate_from_sources_dialog()
-
-    def on_menu_save_translation(self, event):  # wxGlade: MyFrame.<event_handler>
+    def on_menu_save_translation(self, event):
         self.panel.try_save_working_file_translation()
 
-    def on_menu_save_template(self, event):  # wxGlade: MyFrame.<event_handler>
+    def on_menu_save_template(self, event):
         self.panel.try_save_working_file_template()
-
-    def on_menu_save_translation_as(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.panel.open_save_translation_dialog()
-
-    def on_menu_save_template_as(self, event):  # wxGlade: MyFrame.<event_handler>
-        self.panel.open_save_template_dialog()
-
-    def on_menu_start_translation(self, event):
-        self.panel.init_translation_from_template()
-
-    def on_menu_update_delete_equals(self, event):
-        self.panel.delete_equals()
 
     def on_menu_update_translation(self, event):
         self.panel.update_translations()
 
-    def on_menu_previous(self, event):  # wxGlade: MyFrame.<event_handler>
+    def on_menu_previous(self, event):
         self.panel.tree_move_to_previous()
 
-    def on_menu_next(self, event):  # wxGlade: MyFrame.<event_handler>
+    def on_menu_next(self, event):
         self.panel.tree_move_to_next()
 
-    def on_menu_source(self, event):  # wxGlade: MyFrame.<event_handler>
+    def on_menu_source(self, event):
         self.panel.translation_copy_original_to_translated()
+
+    def on_menu_open(self, event):
+        self.panel.open_generate_from_sources_dialog()
+
+    def on_menu_save_as_translation(self, event):
+        self.panel.open_save_translation_dialog()
+
+    def on_menu_save_as_template(self, event):
+        self.panel.open_save_template_dialog()
+
+    def on_menu_action_new_translation(self, event):
+        self.panel.init_translation_from_template()
+
+    def on_menu_translation_delete_equal(self, event):
+        self.panel.delete_equals()
+
+    def on_menu_obsolete_orphans(self, event):
+        print("Event handler 'on_menu_obsolete_orphans' not implemented!")
+        event.Skip()
+
+    def on_menu_delete_orphans(self, event):
+        print("Event handler 'on_menu_delete_orphans' not implemented!")
+        event.Skip()
+
+    def on_menu_move_new(self, event):
+        print("Event handler 'on_menu_move_new' not implemented!")
+        event.Skip()
+
+    def on_menu_fuzzy_match(self, event):
+        print("Event handler 'on_menu_fuzzy_match' not implemented!")
+        event.Skip()
 
     def load_language(self, lang):
         try:
@@ -1035,6 +1355,7 @@ class PoboyWindow(wx.Frame):
             self.locale.AddCatalog("poboy")
         else:
             self.locale = None
+
 
     def add_language_menu(self):
         tl = wx.FileTranslationsLoader()
@@ -1056,7 +1377,6 @@ class PoboyWindow(wx.Frame):
                 m.Enable(False)
             i += 1
         self.main_menubar.Append(wxglade_tmp_menu, _("Languages"))
-
 
 # end of class MyFrame
 
