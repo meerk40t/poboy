@@ -948,7 +948,10 @@ class Catalog(object):
 
         for msgid in remaining:
             if no_fuzzy_matching or msgid not in fuzzy_matches:
-                self.obsolete[msgid] = remaining[msgid]
+                message = remaining[msgid]
+                self.obsolete[msgid] = message
+                message.modified = True
+
 
         if update_header_comment:
             # Allow the updated catalog's header to be rewritten based on the
