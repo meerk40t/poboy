@@ -245,14 +245,10 @@ def generate_catalog_from_python_package(sources_directory):
     for filename, lineno, message, comments, context in extract.extract_from_dir(
         sources_directory
     ):
-        if os.path.isfile(sources_directory):
-            filepath = filename  # already normalized
-        else:
-            filepath = os.path.normpath(os.path.join(sources_directory, filename))
         catalog.add(
             message,
             None,
-            [(filepath, lineno)],
+            [(filename, lineno)],
             auto_comments=comments,
             context=context,
         )

@@ -151,7 +151,6 @@ def extract_from_dir(
         if "__init__.py" not in items:
             continue # This is not a package.
         items = [os.path.join(directory, item) for item in items]
-        # directories.extend([item for item in items if os.path.isdir(item)])
         for item in items:
             if os.path.isdir(item):
                 directories.append(item)
