@@ -636,6 +636,9 @@ class TranslationPanel(wx.Panel):
             catalog.workflow_obsolete = tree.AppendItem(
                 catalog.item, _("Obsolete"), data=(catalog, "obsolete")
             )
+            catalog.workflow_fuzzy = tree.AppendItem(
+                catalog.item, _("Fuzzy"), data=(catalog, "fuzzy")
+            )
             catalog.workflow_untranslated = tree.AppendItem(
                 catalog.item, _("Untranslated"), data=(catalog, "untranslated")
             )
@@ -766,6 +769,8 @@ class TranslationPanel(wx.Panel):
         items = message.items
         if msgid == HEADER:
             return classes
+        if message.fuzzy:
+            classes.append(catalog.workflow_fuzzy)
         if not msgstr:
             classes.append(catalog.workflow_untranslated)
             return classes
@@ -918,7 +923,7 @@ class TranslationPanel(wx.Panel):
                 candidates.extend(catalog.obsolete)
 
                 for new_message in catalog.new.values():
-                    matches = get_close_matches(new_message.id, candidates, 1, cutoff=0.9)
+                    matches = get_close_matches(new_message.id, candidates, 1, cutoff=0.85)
                     if matches:
                         match = matches[0]
                         try:
@@ -1012,6 +1017,9 @@ class SingleMessagePanel(wx.Panel):
         if self.selected_message is not None:
             self.selected_message.fuzzy = self.checkbox_fuzzy.GetValue()
             self.selected_message.modified = True
+            self.translation_panel.message_revalidate(
+                self.selected_catalog, self.selected_message
+            )
 
     def update_pane(self, message):
         self.selected_message = None

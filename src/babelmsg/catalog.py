@@ -887,9 +887,8 @@ class Catalog(object):
             )
         fuzzy_matches = set()
 
-        def _merge(message, oldkey, newkey):
+        def _merge(message, oldkey, newkey, fuzzy=False):
             message = message.clone()
-            fuzzy = False
             if oldkey != newkey:
                 fuzzy = True
                 fuzzy_matches.add(oldkey)
@@ -919,7 +918,7 @@ class Catalog(object):
                 message.string = message.string[0]
             message.flags |= oldmsg.flags
             if fuzzy:
-                message.flags |= {u"fuzzy"}
+                message.fuzzy = True
             self[message.id] = message
 
         for message in template:
@@ -935,14 +934,14 @@ class Catalog(object):
                         else:
                             matchkey = key
                         matches = get_close_matches(
-                            matchkey.lower().strip(), fuzzy_candidates.keys(), 1, cutoff=.9
+                            matchkey.lower().strip(), fuzzy_candidates.keys(), 1, cutoff=.85
                         )
                         if matches:
                             newkey = matches[0]
                             newctxt = fuzzy_candidates[newkey]
                             if newctxt is not None:
                                 newkey = newkey, newctxt
-                            _merge(message, newkey, key)
+                            _merge(message, newkey, key, True)
                             continue
 
                     self[message.id] = message
