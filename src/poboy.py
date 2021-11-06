@@ -1550,7 +1550,8 @@ class PoboyWindow(wx.Frame):
         self.panel.update_translations()
 
     def on_menu_full_update_translation(self, event):
-        self.panel.full_update_translations()
+        with wx.BusyInfo("Updating all translations with current template."):
+            self.panel.full_update_translations()
 
     def on_menu_previous(self, event):
         self.panel.tree_move_to_previous()

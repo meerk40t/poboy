@@ -191,6 +191,7 @@ class Message(object):
 
     @fuzzy.setter
     def fuzzy(self, fuzzy: bool):
+        self.modified = True
         if fuzzy:
             if "fuzzy" not in self.flags:
                 self.flags.add("fuzzy")
@@ -871,6 +872,8 @@ class Catalog(object):
         messages = self._messages
         remaining = messages.copy()
         self._messages = OrderedDict()
+        self.new = OrderedDict()
+        self.orphans = OrderedDict()
 
         # Prepare for fuzzy matching
         fuzzy_candidates = []
