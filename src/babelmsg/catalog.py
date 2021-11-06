@@ -73,11 +73,14 @@ class Message(object):
         :param lineno: the line number on which the msgid line was found in the
                        PO file, if any
         :param context: the message context
+        :param original_lines: the original lines that were parsed into this message
+        :param modified: modified flag for this particular message
+        :param items: the tree items list for storage purposes.
         """
-        self.id = id
+        self._id = id
         if not string and self.pluralizable:
             string = (u"", u"")
-        self.string = string
+        self._string = string
         self.locations = list(distinct(locations))
         self.flags = set(flags)
         if id and self.python_format:
@@ -101,7 +104,7 @@ class Message(object):
             self.items = list()
 
     def __repr__(self):
-        return "<%s %r (flags: %r)>" % (type(self).__name__, self.id, list(self.flags))
+        return "<%s %r (flags: %r)>" % (type(self).__name__, self._id, list(self.flags))
 
     def __cmp__(self, other):
         """Compare Messages, taking into account plural ids"""
@@ -136,8 +139,8 @@ class Message(object):
             *map(
                 copy,
                 (
-                    self.id,
-                    self.string,
+                    self._id,
+                    self._string,
                     self.locations,
                     self.flags,
                     self.auto_comments,
@@ -195,6 +198,23 @@ class Message(object):
             if "fuzzy" in self.flags:
                 self.flags.discard("fuzzy")
 
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value):
+        self._id = value
+        self.modified = True
+
+    @property
+    def string(self):
+        return self._string
+
+    @string.setter
+    def string(self, value):
+        self._string = value
+        self.modified = True
 
     @property
     def pluralizable(self):
@@ -206,7 +226,7 @@ class Message(object):
         True
 
         :type:  `bool`"""
-        return isinstance(self.id, (list, tuple))
+        return isinstance(self._id, (list, tuple))
 
     @property
     def python_format(self):
@@ -218,7 +238,7 @@ class Message(object):
         True
 
         :type:  `bool`"""
-        ids = self.id
+        ids = self._id
         if not isinstance(ids, (list, tuple)):
             ids = [ids]
         return any(PYTHON_FORMAT.search(id) for id in ids)
