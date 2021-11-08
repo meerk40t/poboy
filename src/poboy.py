@@ -537,7 +537,7 @@ class TranslationPanel(wx.Panel):
                 del catalog.orphans[m.id]
                 self.message_revalidate(catalog, m)
 
-    def full_update_translations(self):
+    def full_update(self):
         self.project.perform_full_updates()
         self.tree_rebuild_tree()
 
@@ -1654,37 +1654,27 @@ class PoboyWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_new, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, "Open Project Directory\tCtrl+O", "")
         self.Bind(wx.EVT_MENU, self.on_menu_open, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation\tCtrl+S", "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save All Project Files\tCtrl+S", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_open, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation\tCtrl+T", "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template\tCtrl+Shift+S", "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template\tCtrl+M", "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_template, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation as", "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation as\tCtrl+Shift+T", "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_as_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template as", "")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template as\tCtrl+Shift+M", "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_as_template, item)
         self.main_menubar.Append(wxglade_tmp_menu, "File")
 
         wxglade_tmp_menu = wx.Menu()
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Start New Translation", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_action_new_translation, item)
-        all_translation_submenu = wx.Menu()
-
-        item = all_translation_submenu.Append(wx.ID_ANY, "Delete msgid==msgstr", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_translation_delete_equal, item)
-        item = all_translation_submenu.Append(wx.ID_ANY, "Obsolete all orphans", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_obsolete_orphans, item)
-        item = all_translation_submenu.Append(wx.ID_ANY, "Delete all orphans", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_delete_orphans, item)
-        item = all_translation_submenu.Append(wx.ID_ANY, "Delete all obsolete", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_delete_orphans, item)
-        item = all_translation_submenu.Append(wx.ID_ANY, "Move New to Messages", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_move_new, item)
-        item = all_translation_submenu.Append(wx.ID_ANY, "Fuzzy Match New Messages", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_fuzzy_match, item)
-        item = all_translation_submenu.Append(wx.ID_ANY, "Full Catalog Update", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_full_update_translation, item)
-
-        wxglade_tmp_menu.AppendSubMenu(all_translation_submenu, "All Translations")
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Compile MO", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_action_compile, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Extract Sources\tCtrl+G", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_action_extract, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Init New Translation\tCtrl+I", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_action_init, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Update Catalogs\tCtrl+U", "")
+        self.Bind(wx.EVT_MENU, self.on_menu_action_update, item)
         self.main_menubar.Append(wxglade_tmp_menu, "Actions")
 
         wxglade_tmp_menu = wx.Menu()
@@ -1729,18 +1719,34 @@ class PoboyWindow(wx.Frame):
     def on_menu_new(self, event):
         self.panel.clear_project()
 
+    def on_menu_open(self, event):
+        self.panel.open_generate_from_sources_dialog()
+
+    def on_menu_save_as_translation(self, event):
+        self.panel.open_save_translation_dialog()
+
+    def on_menu_save_as_template(self, event):
+        self.panel.open_save_template_dialog()
+
     def on_menu_save_translation(self, event):
         self.panel.try_save_working_file_translation()
 
     def on_menu_save_template(self, event):
         self.panel.try_save_working_file_template()
 
-    def on_menu_update_translation(self, event):
-        self.panel.update_translations()
-
-    def on_menu_full_update_translation(self, event):
+    def on_menu_action_update(self, event):
         with wx.BusyInfo("Updating all translations with current template."):
-            self.panel.full_update_translations()
+            self.panel.full_update()
+
+    def on_menu_action_extract(self, event):
+        with wx.BusyInfo("Extracting sources to generate new template."):
+            self.panel.full_extract()
+
+    def on_menu_action_init(self, event):
+        self.panel.init_translation_from_template()
+
+    def on_menu_action_compile(self, event):
+        self.panel.full_compile()
 
     def on_menu_previous(self, event):
         self.panel.tree_move_to_previous()
@@ -1759,36 +1765,6 @@ class PoboyWindow(wx.Frame):
 
     def on_menu_unfuzzy(self, event):
         self.panel.force_unfuzzy()
-
-    def on_menu_open(self, event):
-        self.panel.open_generate_from_sources_dialog()
-
-    def on_menu_save_as_translation(self, event):
-        self.panel.open_save_translation_dialog()
-
-    def on_menu_save_as_template(self, event):
-        self.panel.open_save_template_dialog()
-
-    def on_menu_action_new_translation(self, event):
-        self.panel.init_translation_from_template()
-
-    def on_menu_translation_delete_equal(self, event):
-        self.panel.delete_equals()
-
-    def on_menu_obsolete_orphans(self, event):
-        self.panel.move_orphans_to_obsolete()
-
-    def on_menu_delete_orphans(self, event):
-        print("Event handler 'on_menu_delete_orphans' not implemented!")
-        event.Skip()
-
-    def on_menu_move_new(self, event):
-        print("Event handler 'on_menu_move_new' not implemented!")
-        event.Skip()
-
-    def on_menu_fuzzy_match(self, event):
-        print("Event handler 'on_menu_fuzzy_match' not implemented!")
-        event.Skip()
 
     def load_language(self, lang):
         try:
