@@ -321,6 +321,7 @@ class TranslationProject:
                     self.load(os.path.join(path, file), locale=basedir)
                 if file.endswith(".pot"):
                     self.load(os.path.join(path, file), locale=TEMPLATE)
+
     def babel_update(
         self,
         no_fuzzy_matching=False,
@@ -535,10 +536,11 @@ class TranslationPanel(wx.Panel):
             return pathname
 
     def open_project(self):
-        with wx.BusyInfo(_("Generating template from sources.")):
+        with wx.BusyInfo(_("Loading all translations files.")):
             self.project.load_all_translations()
-            # self.project.calculate_updates()
-            self.tree_rebuild_tree()
+        with wx.BusyInfo(_("Calculating Differences...")):
+            self.project.calculate_updates()
+        self.tree_rebuild_tree()
 
     def delete_equals(self):
         for catalog in self.project.catalogs.values():
@@ -617,6 +619,10 @@ class TranslationPanel(wx.Panel):
                 self.tree.SetItemTextColour(item, self.color_untranslated)
 
     def tree_rebuild_tree(self):
+        with wx.BusyInfo(_("Rebuilding Tree...")):
+            self._tree_rebuild()
+
+    def _tree_rebuild(self):
         tree = self.tree
         tree.DeleteChildren(self.root)
         try:
