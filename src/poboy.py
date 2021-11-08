@@ -257,7 +257,7 @@ def generate_template_from_python_package(sources_directory, strip_comment_tags=
     return template
 
 
-def obsolete_orphans(tree, catalog):
+def obsolete_orphans(tree, catalog, panel):
     for m in list(catalog.orphans):
         message = catalog[m]
         parents = [tree.GetItemParent(item) for item in message.items]
@@ -277,7 +277,7 @@ def obsolete_orphans(tree, catalog):
 
 
 
-def delete_orphans(tree, catalog):
+def delete_orphans(tree, catalog, panel):
     for m in list(catalog.orphans):
         message = catalog[m]
         message.modified = True
@@ -287,14 +287,14 @@ def delete_orphans(tree, catalog):
         del catalog.orphans[m]
 
 
-def save_as_patch(tree, catalog):
+def save_as_patch(tree, catalog, panel):
     newcatalog = catalog.clone()
     newcatalog._messages.clear()
     newcatalog._messages.update(catalog.new)
     save(newcatalog, "patch.po", write_mo=False)
 
 
-def move_new_to_general(tree, catalog):
+def move_new_to_general(tree, catalog, panel):
     for m in list(catalog.new):
         message = catalog.new[m]
         message.modified = True
@@ -308,10 +308,10 @@ def move_new_to_general(tree, catalog):
         message.item = tree.AppendItem(
             catalog.workflow_all, m, data=(catalog, message)
         )
-        self.message_revalidate(catalog, message)
+        panel.message_revalidate(catalog, message)
 
 
-def fuzzy_match(tree, catalog):
+def fuzzy_match(tree, catalog, panel):
     candidates = list(catalog.orphans)
     candidates.extend(catalog.obsolete)
 
@@ -1856,7 +1856,7 @@ class InfoPanel(wx.Panel):
             for cmd in data['commands']:
                 button = wx.Button(self, wx.ID_ANY, cmd['name'])
                 self.sizer_operations.Add(button, 0, 0, 0)
-                self.Bind(wx.EVT_BUTTON, as_event(cmd["command"]), button.GetId())
+                self.Bind(wx.EVT_BUTTON, as_event(cmd["command"]), button)
             self.Layout()
 
 
