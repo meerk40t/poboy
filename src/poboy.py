@@ -1522,7 +1522,7 @@ class ProjectPanel(wx.Panel):
         sizer_22.Add(sizer_24, 0, wx.EXPAND, 0)
 
         self.text_project_directory = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
-        sizer_24.Add(self.text_project_directory, 0, wx.EXPAND, 0)
+        sizer_24.Add(self.text_project_directory, 1, wx.EXPAND, 0)
 
         self.button_open_project_directory = wx.Button(self, wx.ID_ANY, "Open")
         sizer_24.Add(self.button_open_project_directory, 0, 0, 0)
