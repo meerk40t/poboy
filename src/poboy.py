@@ -856,9 +856,26 @@ class TranslationPanel(wx.Panel):
                 continue
             catalog = self.project.catalogs[m]
             self._tree_build_catalog(m, catalog)
+        tree.ExpandAllChildren(self.root)
+        self.depth_first_tree(self._tree_recolor, self.root)
 
-        tree.ExpandAll()
-        self.Layout()
+    def _tree_recolor(self, item):
+        catalog, info = self.tree.GetItemData(item)
+        if not isinstance(info, str):
+            if catalog.locale is None:
+                c1 = self.color_template_translated
+                c2 = self.color_template
+            else:
+                c1 = self.color_translated
+                c2 = self.color_untranslated
+            self.tree.SetItemTextColour(item, c1 if info.string else c2)
+
+    def depth_first_tree(self, funct, item):
+        (child, cookie) = self.tree.GetFirstChild(item)
+        while child.IsOk():
+            self.depth_first_tree(funct, child)
+            funct(child)
+            (child, cookie) = self.tree.GetNextChild(item, cookie)
 
     def tree_move_to_next(self):
         t = None
