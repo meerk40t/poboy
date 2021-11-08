@@ -239,45 +239,81 @@ def load(filename):
         return catalog
 
 
-def generate_catalog_from_python_package(sources_directory):
-    catalog = Catalog()
+def generate_template_from_python_package(sources_directory, strip_comment_tags=False):
+    template = Catalog()
     for filename, lineno, message, comments, context in extract.extract_from_dir(
-        sources_directory
+        sources_directory, strip_comment_tags=strip_comment_tags,
     ):
-        catalog.add(
+        template.add(
             message,
             None,
             [(filename, lineno)],
             auto_comments=comments,
             context=context,
         )
-    return catalog
+    return template
 
 
 class TranslationProject:
+    """
+    Translation Project is the project class it stores the local sources directory the locale directory should be
+    a subdirectory of the project directory. And it stores a list of all the catalogs within this project including
+    the template.
+    """
     def __init__(self):
         self.catalogs = OrderedDict()
+        self.directory = None
+        self.template_file = "/locale/messages.pot"
+        self.catalog_file = "/locale/{locale}/LC_MESSAGES/{domain}.po"
 
     def clear(self):
+        self.directory = None
+        self.template_file = "/locale/messages.pot"
+        self.catalog_file = "/locale/{locale}/LC_MESSAGES/{domain}.po"
         self.catalogs.clear()
 
-    def init(self, locale: str):
+    def init(self, locale: str, domain: str="messages", language: str=None):
         template = self.catalogs.get(TEMPLATE)
         translate = template.clone()
         translate._locale = locale
         translate.revision_date = datetime.now()
         translate.fuzzy = False
+        translate.filename = self.catalog_file.format(locale=str(locale), domain=str(domain), language=str(language))
         self.catalogs[locale] = translate
+        self.save(translate)
+
+    def compile_all(self):
+        for c in self.catalogs:
+            if c == TEMPLATE:
+                continue # We do not compile template objects.
+            catalog = self.catalogs[c]
+            filename = catalog.filename
+            if filename.endswith(".po"):
+                filename = filename[:-3]
+            filename += ".mo"
+            with open(filename, "wb") as save:
+                mofile.write_mo(save, catalog)
+
+    def save_all(self):
+        for c in self.catalogs:
+            catalog = self.catalogs[c]
+            save(catalog)
+
+    def save(self, catalog):
+        save(catalog, catalog.filename)
+
+    def save_locale(self, locale: str):
+        catalog = self.catalogs[locale]
+        self.save(catalog)
 
     def load(self, filename, locale=None):
         catalog = load(filename)
         self.catalogs[locale] = catalog
 
-    def save(self, locale: str, filename: str = None):
-        catalog = self.catalogs[locale]
-        save(catalog, filename)
-
-    def load_all_translations(self, locale_directory):
+    def load_all_translations(self):
+        if self.directory is None:
+            raise FileNotFoundError
+        locale_directory = os.path.join(self.directory, "locale")
         directories = [item for item in os.listdir(locale_directory)]
         directories = [
             (item, os.path.join(locale_directory, item)) for item in directories
@@ -288,26 +324,9 @@ class TranslationProject:
                 for file in files:
                     if file.endswith(".po"):
                         self.load(os.path.join(path, file), locale=basedir)
-
-    def calculate_updates(self):
-        template = self.catalogs[TEMPLATE]
-        if template is None:
-            return
-        for message in template:
-            msgid = str(message.id)
-            name = msgid.strip()
-            if name == HEADER:
-                continue
-            for catalog in self.catalogs.values():
-                if msgid not in catalog._messages:
-                    catalog.new[msgid] = message.clone()
-
-    def perform_updates(self):
-        for catalog in self.catalogs.values():
-            catalog._messages.update(catalog.new)
-            catalog.new.clear()
-
-    def perform_full_updates(
+                    if file.endswith(".pot"):
+                        self.load(os.path.join(path, file), locale=TEMPLATE)
+    def babel_update(
         self,
         no_fuzzy_matching=False,
         update_header_comment=False,
@@ -327,12 +346,33 @@ class TranslationProject:
                 keep_user_comments=keep_user_comments,
             )
 
+    def babel_extract(self):
+        catalog = generate_template_from_python_package(self.directory)
+        self.catalogs[TEMPLATE] = catalog
+
+    def calculate_updates(self):
+        template = self.catalogs.get(TEMPLATE)
+        if template is None:
+            return
+        for message in template:
+            msgid = str(message.id)
+            name = msgid.strip()
+            if name == HEADER:
+                continue
+            for catalog in self.catalogs.values():
+                if msgid not in catalog._messages:
+                    catalog.new[msgid] = message.clone()
+
+    def perform_updates(self):
+        for catalog in self.catalogs.values():
+            catalog._messages.update(catalog.new)
+            catalog.new.clear()
+
     def delete_equals(self):
         for catalog in self.catalogs.values():
             for message in catalog:
                 if message.id == message.string:
                     message.string = None
-
 
     def get_orphans(self, catalog):
         template = self.catalogs[TEMPLATE]
@@ -361,10 +401,6 @@ class TranslationProject:
                     new_message = message.clone()
                     catalog.obsolete[msgid] = new_message
                     new_message.modified = True
-
-    def generate(self, sources_directory):
-        catalog = generate_catalog_from_python_package(sources_directory)
-        self.catalogs[TEMPLATE] = catalog
 
 
 class TranslationPanel(wx.Panel):
@@ -428,6 +464,20 @@ class TranslationPanel(wx.Panel):
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
         self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_tree_menu)
 
+    def open_project_directory(self):
+        directory = None
+        dlg = wx.DirDialog(
+            self,
+            message=_("Choose python sources directory"),
+            style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST,
+        )
+        if dlg.ShowModal() == wx.ID_OK:
+            directory = os.path.abspath(dlg.GetPath())
+            self.project.directory = directory
+            self.panel_project.update_pane()
+        dlg.Destroy()
+        self.open_project()
+        return directory
 
     def open_save_translation_dialog(self):
         with wx.FileDialog(
@@ -489,38 +539,11 @@ class TranslationPanel(wx.Panel):
             self.tree_rebuild_tree()
             return pathname
 
-    def open_generate_from_sources_dialog(self):
-        directory = None
-        dlg = wx.DirDialog(
-            self,
-            message=_("Choose python sources directory"),
-            style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST,
-        )
-        if dlg.ShowModal() == wx.ID_OK:
-            directory = os.path.abspath(dlg.GetPath())
-            with wx.BusyInfo(_("Generating template from sources.")):
-                self.project.generate(directory)
-                locale_directory = os.path.join(directory, "locale")
-                if os.path.exists(locale_directory):
-                    self.project.load_all_translations(locale_directory)
-                self.project.calculate_updates()
-                self.tree_rebuild_tree()
-        dlg.Destroy()
-        return directory
-
-    def init_translation_from_template(self):
-        dlg = wx.TextEntryDialog(
-            None,
-            _("Provide the Translation locale"),
-            _("Initializing Template"),
-            "",
-        )
-        dlg.SetValue("")
-
-        if dlg.ShowModal() == wx.ID_OK:
-            self.project.init(dlg.GetValue())
-        dlg.Destroy()
-        self.tree_rebuild_tree()
+    def open_project(self):
+        with wx.BusyInfo(_("Generating template from sources.")):
+            self.project.load_all_translations()
+            # self.project.calculate_updates()
+            self.tree_rebuild_tree()
 
     def delete_equals(self):
         for catalog in self.project.catalogs.values():
@@ -537,9 +560,32 @@ class TranslationPanel(wx.Panel):
                 del catalog.orphans[m.id]
                 self.message_revalidate(catalog, m)
 
-    def full_update(self):
-        self.project.perform_full_updates()
+    def action_init(self):
+        dlg = wx.TextEntryDialog(
+            None,
+            _("Provide the Translation locale"),
+            _("Initializing Template"),
+            "",
+        )
+        dlg.SetValue("")
+
+        if dlg.ShowModal() == wx.ID_OK:
+            locale = dlg.GetValue()
+            self.project.init(locale=locale)
+        dlg.Destroy()
         self.tree_rebuild_tree()
+
+    def action_update(self):
+        self.project.babel_update()
+        self.tree_rebuild_tree()
+
+    def action_extract(self):
+        with wx.BusyInfo(_("Generating template from sources.")):
+            self.project.babel_extract()
+            self.tree_rebuild_tree()
+
+    def action_compile(self):
+        self.project.compile_all()
 
     def update_translations(self):
         self.project.perform_updates()
@@ -1543,13 +1589,13 @@ class ProjectPanel(wx.Panel):
         sizer_27 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Template Location:"), wx.VERTICAL)
         sizer_22.Add(sizer_27, 0, wx.EXPAND, 0)
 
-        self.text_project_pot_file = wx.TextCtrl(self, wx.ID_ANY, "/locale/messages.pot")
+        self.text_project_pot_file = wx.TextCtrl(self, wx.ID_ANY, "")
         sizer_27.Add(self.text_project_pot_file, 0, wx.EXPAND, 0)
 
         sizer_19 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Structure:"), wx.VERTICAL)
         sizer_22.Add(sizer_19, 1, wx.EXPAND, 0)
 
-        self.text_template_structure = wx.TextCtrl(self, wx.ID_ANY, "/locale/LC_MESSAGES/<lang>/<project>.po")
+        self.text_template_structure = wx.TextCtrl(self, wx.ID_ANY, "")
         sizer_19.Add(self.text_template_structure, 0, wx.EXPAND, 0)
 
         label_3 = wx.StaticText(self, wx.ID_ANY, "* <lang>: language")
@@ -1571,7 +1617,7 @@ class ProjectPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.on_project_open_directory, self.button_open_project_directory)
         self.Bind(wx.EVT_TEXT, self.on_text_template_name, self.text_project_name)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_name, self.text_project_name)
-        self.Bind(wx.EVT_COMBOBOX, self.on_combo_template_charset, self.combo_project_charset)
+        self.Bind(wx.EVT_COMBOBOX, self.on_combo_project_charset, self.combo_project_charset)
         self.Bind(wx.EVT_TEXT, self.on_text_template_structure, self.text_project_pot_file)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_structure, self.text_project_pot_file)
         self.Bind(wx.EVT_TEXT, self.on_text_template_structure, self.text_template_structure)
@@ -1579,14 +1625,13 @@ class ProjectPanel(wx.Panel):
         # end wxGlade
 
     def on_project_open_directory(self, event):  # wxGlade: ProjectPanel.<event_handler>
-        print("Event handler 'on_project_open_directory' not implemented!")
-        event.Skip()
+        self.translation_panel.open_project_directory()
 
     def on_text_template_name(self, event):  # wxGlade: ProjectPanel.<event_handler>
         print("Event handler 'on_text_template_name' not implemented!")
         event.Skip()
 
-    def on_combo_template_charset(self, event):  # wxGlade: ProjectPanel.<event_handler>
+    def on_combo_project_charset(self, event):  # wxGlade: ProjectPanel.<event_handler>
         print("Event handler 'on_combo_template_charset' not implemented!")
         event.Skip()
 
@@ -1595,7 +1640,14 @@ class ProjectPanel(wx.Panel):
         event.Skip()
 
     def update_pane(self):
-        pass
+        directory = self.translation_panel.project.directory
+        if directory is None:
+            directory = ""
+        self.text_project_directory.SetValue(directory)
+        tem_file = self.translation_panel.project.template_file
+        self.text_project_pot_file.SetValue(tem_file)
+        cat_file = self.translation_panel.project.catalog_file
+        self.text_project_pot_file.SetValue(cat_file)
 
 
 class InfoPanel(wx.Panel):
@@ -1720,7 +1772,7 @@ class PoboyWindow(wx.Frame):
         self.panel.clear_project()
 
     def on_menu_open(self, event):
-        self.panel.open_generate_from_sources_dialog()
+        self.panel.open_project_directory()
 
     def on_menu_save_as_translation(self, event):
         self.panel.open_save_translation_dialog()
@@ -1736,17 +1788,17 @@ class PoboyWindow(wx.Frame):
 
     def on_menu_action_update(self, event):
         with wx.BusyInfo("Updating all translations with current template."):
-            self.panel.full_update()
+            self.panel.action_update()
 
     def on_menu_action_extract(self, event):
         with wx.BusyInfo("Extracting sources to generate new template."):
-            self.panel.full_extract()
+            self.panel.action_extract()
 
     def on_menu_action_init(self, event):
-        self.panel.init_translation_from_template()
+        self.panel.action_init()
 
     def on_menu_action_compile(self, event):
-        self.panel.full_compile()
+        self.panel.action_compile()
 
     def on_menu_previous(self, event):
         self.panel.tree_move_to_previous()
