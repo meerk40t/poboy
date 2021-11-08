@@ -314,18 +314,13 @@ class TranslationProject:
         if self.directory is None:
             raise FileNotFoundError
         locale_directory = os.path.join(self.directory, "locale")
-        directories = [item for item in os.listdir(locale_directory)]
-        directories = [
-            (item, os.path.join(locale_directory, item)) for item in directories
-        ]
-        directories = [item for item in directories if os.path.isdir(item[1])]
-        for basedir, directory in directories:
-            for path, dirs, files in os.walk(directory):
-                for file in files:
-                    if file.endswith(".po"):
-                        self.load(os.path.join(path, file), locale=basedir)
-                    if file.endswith(".pot"):
-                        self.load(os.path.join(path, file), locale=TEMPLATE)
+        for path, dirs, files in os.walk(locale_directory):
+            for file in files:
+                if file.endswith(".po"):
+                    basedir = os.path.split(os.path.relpath(path,locale_directory))[0]
+                    self.load(os.path.join(path, file), locale=basedir)
+                if file.endswith(".pot"):
+                    self.load(os.path.join(path, file), locale=TEMPLATE)
     def babel_update(
         self,
         no_fuzzy_matching=False,
