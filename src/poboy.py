@@ -253,6 +253,88 @@ def generate_template_from_python_package(sources_directory, strip_comment_tags=
         )
     return template
 
+INTERFACE = {
+    "new": {
+        "description":"""New messages are those items found in the template but not found Portable Object file.
+
+Messages within new are not part of the general population of messages.""",
+        "commands":[]
+    },
+    "added": {
+        "description":"""Added messages are those items which are newly found for this template.""",
+        "commands":[]
+    },
+    "removed": {
+        "description":"""Removed messages are those messages which were included, but no longer are included in this template.""",
+        "commands":[]
+    },
+    "orphan": {
+        "description":"""Orphan messages are those items found in the Portable Object file but not found in the template.
+
+Messages in orphan are within the general population of messages.""",
+        "commands":[]
+    },
+    "obsolete": {
+        "description":"""Obsolete messages are these items commented out in the Portable Object file. This could be because they were moved disabled by a previous update or because they were merely placed in the disabled group.
+
+Messages in obsolete are not part of the general population of messages. However they are saved with the Portable Object file.""",
+        "commands":[]
+    },
+    "issues": {
+        "description": """Messages which have issues may be fine. However, their usage is highlighted in order to help avoid potential inconsistencies. They may be minor problems or the issues themselves may be defective and the current translation is correct.""",
+        "commands": []
+    },
+    "issue-equal": {
+        "description": """Messages with this issue are effectively worthless. The default operation of a translation is to do no translation. However this message explicitly does no work. This takes up additional  time and resources to perform no action over the default.        """,
+        "commands": []
+    },
+    "issue-capitals": {
+        "description": """Messages with this issue have different initial capitalizations. This may be because an error was made or simply be flagged in error.
+
+For example, translating "percent" from English to German may be translated "Prozent" and be flagged for inconsistent capitalization. However, "percent" is a noun and all nouns are capitalized in German.""",
+        "commands": []
+    },
+    "issue-punctuation": {
+        "description": """Messages with this issue have different terminal punctuation. The translated item has a different amount final punctuation mark.""",
+        "commands": []
+    },
+    "issue-ending-whitespace": {
+        "description": """This issue occurs when the amount of white space differs between the translated string and original string.""",
+        "commands": []
+    },
+    "issue-double-space": {
+        "description": """This issue occurs when a double space is used within a string. This may be for effect or simply in error.""",
+        "commands": []
+    },
+    "errors": {
+        "description": """Messages which are in error should be fixed. Errors are functional defects in the messages that would prevent these messages from working within the program. Attempting to use them can produce crashes in the program and these should be carefully and effectively eliminated.""",
+        "commands": []
+    },
+    "error-printf": {
+        "description": """Messages with this error have different or inconsistent printf commands too many or too few %s, %f, %d commands or these commands in the wrong order.
+        
+Printf commands intend to have values inserted for the printf tokens. If these are not present or if they occur in the wrong order this may cause the program to crash.""",
+        "commands": []
+    },
+    "fuzzy": {
+        "description": """Fuzzy Messages are translated but suspect. These could be close matches during an update process or automatically translated by a machine. The fuzziness of the translation is an indication of the trust we should not have in the utility of this translation.""",
+        "commands": []
+    },
+    "translated": {
+        "description": """Translated messages are those messages for which any value appears in the message string.""",
+        "commands": []
+    },
+    "untranslated": {
+        "description": """Untranslated messages are those messages which have no value in the message string.""",
+        "commands": []
+    },
+    "all": {
+        "description": """List of every message within the current catalog.
+        
+Note: All includes only those messages which are actively in the catalog. This will not include, obsolete, or new messages but shall include orphans.""",
+        "commands": []
+    }
+}
 
 class TranslationProject:
     """
@@ -458,6 +540,7 @@ class TranslationPanel(wx.Panel):
         self.catalog = None
         self.project = TranslationProject()
 
+        self.do_not_update = False
         self.root = self.tree.AddRoot(_("Project"), data=(None, "project"))
 
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
@@ -609,21 +692,12 @@ class TranslationPanel(wx.Panel):
         except FileNotFoundError:
             self.open_save_template_dialog()
 
-    def colorize_by_message(self, item, message, template=False):
-        if message.string:
-            if template:
-                self.tree.SetItemTextColour(item, self.color_template_translated)
-            else:
-                self.tree.SetItemTextColour(item, self.color_translated)
-        else:
-            if template:
-                self.tree.SetItemTextColour(item, self.color_template)
-            else:
-                self.tree.SetItemTextColour(item, self.color_untranslated)
-
     def tree_rebuild_tree(self):
+        self.do_not_update = True
         with wx.BusyInfo(_("Rebuilding Tree...")):
             self._tree_rebuild()
+        self.do_not_update = False
+        self.tree.SelectItem(self.root)
 
     def _tree_build_template(self):
         tree = self.tree
@@ -637,7 +711,7 @@ class TranslationPanel(wx.Panel):
                     catalog.item, _("Added"), data=(catalog, "added")
                 )
                 tree.SetItemTextColour(catalog.workflow_added, wx.GREEN)
-                for message in catalog.new:
+                for message in catalog.new.values():
                     msgid = str(message.id)
                     name = msgid.strip()
                     if name == HEADER:
@@ -645,13 +719,14 @@ class TranslationPanel(wx.Panel):
                     message.item = tree.AppendItem(
                         catalog.workflow_added, name, data=(catalog, message)
                     )
-                    self.colorize_by_message(message.item, message, True)
+                    tree.SetItemTextColour(message.item,
+                                           self.color_template_translated if message.string else self.color_template)
             if len(catalog.orphans):
                 catalog.workflow_removed = tree.AppendItem(
                     catalog.item, _("Removed"), data=(catalog, "removed")
                 )
                 tree.SetItemTextColour(catalog.workflow_removed, wx.RED)
-                for message in catalog.orphans:
+                for message in catalog.orphans.values():
                     msgid = str(message.id)
                     name = msgid.strip()
                     if name == HEADER:
@@ -659,7 +734,8 @@ class TranslationPanel(wx.Panel):
                     message.item = tree.AppendItem(
                         catalog.workflow_removed, name, data=(catalog, message)
                     )
-                    self.colorize_by_message(message.item, message, True)
+                    tree.SetItemTextColour(message.item,
+                                           self.color_template_translated if message.string else self.color_template)
             for message in catalog:
                 msgid = str(message.id)
                 name = msgid.strip()
@@ -668,7 +744,8 @@ class TranslationPanel(wx.Panel):
                 message.item = tree.AppendItem(
                     catalog.item, name, data=(catalog, message)
                 )
-                self.colorize_by_message(message.item, message, True)
+                tree.SetItemTextColour(message.item,
+                                       self.color_template_translated if message.string else self.color_template)
             self.template = catalog
         except KeyError:
             self.template = None
@@ -747,7 +824,7 @@ class TranslationPanel(wx.Panel):
             message.item = tree.AppendItem(
                 catalog.workflow_all, name, data=(catalog, message)
             )
-            self.colorize_by_message(message.item, message)
+            tree.SetItemTextColour(message.item, self.color_translated if message.string else self.color_untranslated)
             self.message_revalidate(catalog, message)
         for m in catalog.obsolete:
             message = catalog.obsolete[m]
@@ -758,7 +835,7 @@ class TranslationPanel(wx.Panel):
             message.item = tree.AppendItem(
                 catalog.workflow_obsolete, name, data=(catalog, message)
             )
-            self.colorize_by_message(message.item, message)
+            tree.SetItemTextColour(message.item, self.color_translated if message.string else self.color_untranslated)
         for m in catalog.new:
             message = catalog.new[m]
             msgid = str(message.id)
@@ -768,7 +845,7 @@ class TranslationPanel(wx.Panel):
             message.item = tree.AppendItem(
                 catalog.workflow_new, name, data=(catalog, message)
             )
-            self.colorize_by_message(message.item, message, True)
+            tree.SetItemTextColour(message.item, self.color_template_translated if message.string else self.color_template)
 
     def _tree_rebuild(self):
         tree = self.tree
@@ -854,7 +931,7 @@ class TranslationPanel(wx.Panel):
             items.remove(item)
         for item in adding:
             new_item = self.tree.AppendItem(item, name, data=(catalog, message))
-            self.colorize_by_message(new_item, message)
+            tree.SetItemTextColour(new_item, self.color_translated if message.string else self.color_untranslated)
             items.append(new_item)
 
     def message_classify(self, catalog, message):
@@ -962,6 +1039,8 @@ class TranslationPanel(wx.Panel):
         self.Layout()
 
     def on_tree_selection(self, event):
+        if self.do_not_update:
+            return
         try:
             data = [
                 self.tree.GetItemData(item)
@@ -980,6 +1059,7 @@ class TranslationPanel(wx.Panel):
                         self.panel_catalog.catalog = catalog
                         self.panel_statistics.catalog = catalog
                         self.panel_file_information.catalog = catalog
+
                         self.panel_catalog.update_pane()
                         self.panel_statistics.update_pane()
                         self.panel_file_information.update_pane()
@@ -987,16 +1067,20 @@ class TranslationPanel(wx.Panel):
                         self.show_template_panel()
                         self.panel_template_file_information.catalog = catalog
                         self.panel_template.template = catalog
+
                         self.panel_template.update_pane()
                         self.panel_template_file_information.update_pane()
                     elif info == "project":
                         self.show_project_panel()
                         self.panel_project.project = self.project
+
                         self.panel_project.update_pane()
                     else:
                         self.show_info_panel()
                         self.panel_info.catalog = catalog
                         self.panel_info.info = info
+
+                        self.panel_info.update_pane()
                 else:
                     self.show_message_panel()
                     self.panel_message_single.update_pane(info)
@@ -1067,6 +1151,28 @@ class TranslationPanel(wx.Panel):
             )
 
             def command(event):
+                for m in list(catalog.new):
+                    message = catalog.new[m]
+                    message.modified = True
+                    del catalog.new[m]
+                    catalog[m] = message
+
+                    for item in message.items:
+                        self.tree.Delete(item)
+                    self.tree.Delete(message.item)
+
+                    message.item = self.tree.AppendItem(
+                        catalog.workflow_all, m, data=(catalog, message)
+                    )
+                    self.message_revalidate(catalog, message)
+
+            self.Bind(
+                wx.EVT_MENU,
+                command,
+                context.Append(wx.ID_ANY, _("Move new to general"), "", wx.ITEM_NORMAL),
+            )
+
+            def command(event):
                 candidates = list(catalog.orphans)
                 candidates.extend(catalog.obsolete)
 
@@ -1087,8 +1193,6 @@ class TranslationPanel(wx.Panel):
                         new_message.string = copy(cur_message.string)
                         new_message.fuzzy = True
                         new_message.modified = True
-                        self.colorize_by_message(new_message.item, new_message, True)
-
             self.Bind(
                 wx.EVT_MENU,
                 command,
@@ -1716,7 +1820,10 @@ class InfoPanel(wx.Panel):
         self.catalog = None
 
     def update_pane(self):
-        pass
+        if self.info is not None:
+            data = INTERFACE.get(self.info)
+            desc = data['description']
+            self.text_information_description.SetValue(desc)
 
 
 class PoboyWindow(wx.Frame):
