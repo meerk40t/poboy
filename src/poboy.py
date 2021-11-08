@@ -1597,6 +1597,7 @@ class ProjectPanel(wx.Panel):
     def update_pane(self):
         pass
 
+
 class InfoPanel(wx.Panel):
     def __init__(self, *args, translation_panel=None, **kwds):
         # begin wxGlade: InfoPanel.__init__
@@ -1637,7 +1638,16 @@ class PoboyWindow(wx.Frame):
 
         self.panel = TranslationPanel(self, wx.ID_ANY)
 
-        # Menu Bar
+        self.__create_menubar()
+
+        _icon = wx.NullIcon
+        _icon.CopyFromBitmap(icons8_translation_50.GetBitmap())
+        self.SetIcon(_icon)
+        self.SetTitle(_("POboy"))
+        self.Layout()
+        # end wxGlade
+
+    def __create_menubar(self):
         self.main_menubar = wx.MenuBar()
         wxglade_tmp_menu = wx.Menu()
         item = wxglade_tmp_menu.Append(wx.ID_ANY, "New\tCtrl+N", "")
@@ -1694,14 +1704,27 @@ class PoboyWindow(wx.Frame):
 
         self.add_language_menu()
         self.SetMenuBar(self.main_menubar)
-        # Menu Bar end
 
-        _icon = wx.NullIcon
-        _icon.CopyFromBitmap(icons8_translation_50.GetBitmap())
-        self.SetIcon(_icon)
-        self.SetTitle(_("POboy"))
-        self.Layout()
-        # end wxGlade
+    def add_language_menu(self):
+        tl = wx.FileTranslationsLoader()
+        trans = tl.GetAvailableTranslations("poboy")
+
+        wxglade_tmp_menu = wx.Menu()
+        i = 0
+        for lang in supported_languages:
+            language_code, language_name, language_index = lang
+            m = wxglade_tmp_menu.Append(wx.ID_ANY, language_name, "", wx.ITEM_RADIO)
+            if i == self.language:
+                m.Check(True)
+
+            def language_update(q):
+                return lambda e: self.load_language(q)
+
+            self.Bind(wx.EVT_MENU, language_update(i), id=m.GetId())
+            if language_code not in trans and i != 0:
+                m.Enable(False)
+            i += 1
+        self.main_menubar.Append(wxglade_tmp_menu, _("Languages"))
 
     def on_menu_new(self, event):
         self.panel.clear_project()
@@ -1783,27 +1806,6 @@ class PoboyWindow(wx.Frame):
             self.locale.AddCatalog("poboy")
         else:
             self.locale = None
-
-    def add_language_menu(self):
-        tl = wx.FileTranslationsLoader()
-        trans = tl.GetAvailableTranslations("poboy")
-
-        wxglade_tmp_menu = wx.Menu()
-        i = 0
-        for lang in supported_languages:
-            language_code, language_name, language_index = lang
-            m = wxglade_tmp_menu.Append(wx.ID_ANY, language_name, "", wx.ITEM_RADIO)
-            if i == self.language:
-                m.Check(True)
-
-            def language_update(q):
-                return lambda e: self.load_language(q)
-
-            self.Bind(wx.EVT_MENU, language_update(i), id=m.GetId())
-            if language_code not in trans and i != 0:
-                m.Enable(False)
-            i += 1
-        self.main_menubar.Append(wxglade_tmp_menu, _("Languages"))
 
 
 class PoboyApp(wx.App):
