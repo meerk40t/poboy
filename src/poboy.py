@@ -17,7 +17,10 @@ from src.babelmsg import Catalog
 PUNCTUATION = (".", "?", "!", ":", ";")
 TEMPLATE = ""
 HEADER = ""
-
+PRINTF_RE = re.compile(
+    r"(%(?:(?:[-+0#]{0,5})(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:h|l|ll|w|I|I32|I64)?[cCdiouxXeEfgGaAnpsSZ])|%%)"
+)
+# r"(%(?:(?:[-+0 #]{0,5})(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:h|l|ll|w|I|I32|I64)?[cCdiouxXeEfgGaAnpsSZ])|%%)"
 _ = wx.GetTranslation
 
 supported_languages = (
@@ -253,12 +256,103 @@ def generate_template_from_python_package(sources_directory, strip_comment_tags=
         )
     return template
 
+
+def obsolete_orphans(tree, catalog):
+    for m in list(catalog.orphans):
+        message = catalog[m]
+        parents = [tree.GetItemParent(item) for item in message.items]
+        if catalog.workflow_orphans in parents:
+            message.modified = True
+            catalog.obsolete[m] = message
+            del catalog[m]
+            del catalog.orphans[m]
+
+            for item in message.items:
+                tree.Delete(item)
+            tree.Delete(message.item)
+
+            message.item = tree.AppendItem(
+                catalog.workflow_obsolete, m, data=(catalog, message)
+            )
+
+
+
+def delete_orphans(tree, catalog):
+    for m in list(catalog.orphans):
+        message = catalog[m]
+        message.modified = True
+        for item in message.items:
+            tree.Delete(item)
+        del catalog[m]
+        del catalog.orphans[m]
+
+
+def save_as_patch(tree, catalog):
+    newcatalog = catalog.clone()
+    newcatalog._messages.clear()
+    newcatalog._messages.update(catalog.new)
+    save(newcatalog, "patch.po", write_mo=False)
+
+
+def move_new_to_general(tree, catalog):
+    for m in list(catalog.new):
+        message = catalog.new[m]
+        message.modified = True
+        del catalog.new[m]
+        catalog[m] = message
+
+        for item in message.items:
+            tree.Delete(item)
+        tree.Delete(message.item)
+
+        message.item = tree.AppendItem(
+            catalog.workflow_all, m, data=(catalog, message)
+        )
+        self.message_revalidate(catalog, message)
+
+
+def fuzzy_match(tree, catalog):
+    candidates = list(catalog.orphans)
+    candidates.extend(catalog.obsolete)
+
+    for new_message in catalog.new.values():
+        matches = get_close_matches(new_message.id, candidates, 1, cutoff=0.85)
+        if matches:
+            match = matches[0]
+            cur_message = None
+            try:
+                cur_message = catalog.orphans[match]
+            except KeyError:
+                pass
+            try:
+                cur_message = catalog.obsolete[match]
+            except KeyError:
+                pass
+            if not cur_message:
+                continue
+            new_message.string = copy(cur_message.string)
+            new_message.fuzzy = True
+            new_message.modified = True
+
 INTERFACE = {
     "new": {
         "description":"""New messages are those items found in the template but not found Portable Object file.
 
 Messages within new are not part of the general population of messages.""",
-        "commands":[]
+        "commands":[
+            {
+                "name": _("Save as patch.po"),
+                "command": save_as_patch,
+            },
+            {
+                "name": _("Move new to general"),
+                "command": move_new_to_general,
+            },
+            {
+                "name": _("Fuzzy Match"),
+                "command": fuzzy_match,
+            }
+        ]
     },
     "added": {
         "description":"""Added messages are those items which are newly found for this template.""",
@@ -272,7 +366,16 @@ Messages within new are not part of the general population of messages.""",
         "description":"""Orphan messages are those items found in the Portable Object file but not found in the template.
 
 Messages in orphan are within the general population of messages.""",
-        "commands":[]
+        "commands":[
+            {
+                "name":_("Obsolete Orphans"),
+                "command":obsolete_orphans
+             },
+            {
+                "name": _("Delete Orphans"),
+                "command":delete_orphans
+            }
+        ]
     },
     "obsolete": {
         "description":"""Obsolete messages are these items commented out in the Portable Object file. This could be because they were moved disabled by a previous update or because they were merely placed in the disabled group.
@@ -723,8 +826,6 @@ class TranslationPanel(wx.Panel):
                     message.item = tree.AppendItem(
                         catalog.workflow_added, name, data=(catalog, message)
                     )
-                    tree.SetItemTextColour(message.item,
-                                           self.color_template_translated if message.string else self.color_template)
             if len(catalog.orphans):
                 catalog.workflow_removed = tree.AppendItem(
                     catalog.item, _("Removed"), data=(catalog, "removed")
@@ -738,8 +839,6 @@ class TranslationPanel(wx.Panel):
                     message.item = tree.AppendItem(
                         catalog.workflow_removed, name, data=(catalog, message)
                     )
-                    tree.SetItemTextColour(message.item,
-                                           self.color_template_translated if message.string else self.color_template)
             for message in catalog:
                 msgid = str(message.id)
                 name = msgid.strip()
@@ -748,8 +847,6 @@ class TranslationPanel(wx.Panel):
                 message.item = tree.AppendItem(
                     catalog.item, name, data=(catalog, message)
                 )
-                tree.SetItemTextColour(message.item,
-                                       self.color_template_translated if message.string else self.color_template)
             self.template = catalog
         except KeyError:
             self.template = None
@@ -828,7 +925,6 @@ class TranslationPanel(wx.Panel):
             message.item = tree.AppendItem(
                 catalog.workflow_all, name, data=(catalog, message)
             )
-            tree.SetItemTextColour(message.item, self.color_translated if message.string else self.color_untranslated)
             self.message_revalidate(catalog, message)
         for m in catalog.obsolete:
             message = catalog.obsolete[m]
@@ -839,7 +935,6 @@ class TranslationPanel(wx.Panel):
             message.item = tree.AppendItem(
                 catalog.workflow_obsolete, name, data=(catalog, message)
             )
-            tree.SetItemTextColour(message.item, self.color_translated if message.string else self.color_untranslated)
         for m in catalog.new:
             message = catalog.new[m]
             msgid = str(message.id)
@@ -952,7 +1047,6 @@ class TranslationPanel(wx.Panel):
             items.remove(item)
         for item in adding:
             new_item = self.tree.AppendItem(item, name, data=(catalog, message))
-            tree.SetItemTextColour(new_item, self.color_translated if message.string else self.color_untranslated)
             items.append(new_item)
 
     def message_classify(self, catalog, message):
@@ -1117,108 +1211,6 @@ class TranslationPanel(wx.Panel):
             return
         menu = wx.Menu()
         context = menu
-        if data == "orphan":
-
-            def command(event):
-                for m in list(catalog.orphans):
-                    message = catalog[m]
-                    parents = [self.tree.GetItemParent(item) for item in message.items]
-                    if catalog.workflow_orphans in parents:
-                        message.modified = True
-                        catalog.obsolete[m] = message
-                        del catalog[m]
-                        del catalog.orphans[m]
-
-                        for item in message.items:
-                            self.tree.Delete(item)
-                        self.tree.Delete(message.item)
-
-                        message.item = self.tree.AppendItem(
-                            catalog.workflow_obsolete, m, data=(catalog, message)
-                        )
-
-            self.Bind(
-                wx.EVT_MENU,
-                command,
-                context.Append(wx.ID_ANY, _("Obsolete Orphans"), "", wx.ITEM_NORMAL),
-            )
-
-            def command(event):
-                for m in list(catalog.orphans):
-                    message = catalog[m]
-                    message.modified = True
-                    for item in message.items:
-                        self.tree.Delete(item)
-                    del catalog[m]
-                    del catalog.orphans[m]
-
-            self.Bind(
-                wx.EVT_MENU,
-                command,
-                context.Append(wx.ID_ANY, _("Delete Orphans"), "", wx.ITEM_NORMAL),
-            )
-        if data == "new":
-
-            def command(event):
-                newcatalog = catalog.clone()
-                newcatalog._messages.clear()
-                newcatalog._messages.update(catalog.new)
-                save(newcatalog, "patch.po", write_mo=False)
-
-            self.Bind(
-                wx.EVT_MENU,
-                command,
-                context.Append(wx.ID_ANY, _("Save as patch.po"), "", wx.ITEM_NORMAL),
-            )
-
-            def command(event):
-                for m in list(catalog.new):
-                    message = catalog.new[m]
-                    message.modified = True
-                    del catalog.new[m]
-                    catalog[m] = message
-
-                    for item in message.items:
-                        self.tree.Delete(item)
-                    self.tree.Delete(message.item)
-
-                    message.item = self.tree.AppendItem(
-                        catalog.workflow_all, m, data=(catalog, message)
-                    )
-                    self.message_revalidate(catalog, message)
-
-            self.Bind(
-                wx.EVT_MENU,
-                command,
-                context.Append(wx.ID_ANY, _("Move new to general"), "", wx.ITEM_NORMAL),
-            )
-
-            def command(event):
-                candidates = list(catalog.orphans)
-                candidates.extend(catalog.obsolete)
-
-                for new_message in catalog.new.values():
-                    matches = get_close_matches(new_message.id, candidates, 1, cutoff=0.85)
-                    if matches:
-                        match = matches[0]
-                        try:
-                            cur_message = catalog.orphans[match]
-                        except KeyError:
-                            pass
-                        try:
-                            cur_message = catalog.obsolete[match]
-                        except KeyError:
-                            pass
-                        if not cur_message:
-                            continue
-                        new_message.string = copy(cur_message.string)
-                        new_message.fuzzy = True
-                        new_message.modified = True
-            self.Bind(
-                wx.EVT_MENU,
-                command,
-                context.Append(wx.ID_ANY, _("Fuzzy Match"), "", wx.ITEM_NORMAL),
-            )
         if menu.MenuItemCount != 0:
             self.PopupMenu(menu)
             menu.Destroy()
@@ -1828,20 +1820,17 @@ class InfoPanel(wx.Panel):
         wx.Panel.__init__(self, *args, **kwds)
         self.translation_panel = translation_panel
 
-        sizer_2 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Info"), wx.VERTICAL)
+        sizer_main = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Info"), wx.VERTICAL)
 
         self.text_information_description = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.text_information_description.SetFont(
             wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
-        sizer_2.Add(self.text_information_description, 1, wx.EXPAND, 0)
+        sizer_main.Add(self.text_information_description, 1, wx.EXPAND, 0)
 
-        sizer_operations = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Operations"), wx.VERTICAL)
-        sizer_2.Add(sizer_operations, 1, wx.EXPAND, 0)
+        self.sizer_operations = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Operations"), wx.VERTICAL)
+        sizer_main.Add(self.sizer_operations, 1, wx.EXPAND, 0)
 
-        self.button_delete = wx.Button(self, wx.ID_ANY, "Delete All Messages")
-        sizer_operations.Add(self.button_delete, 0, 0, 0)
-
-        self.SetSizer(sizer_2)
+        self.SetSizer(sizer_main)
 
         self.Layout()
         # end wxGlade
@@ -1849,10 +1838,21 @@ class InfoPanel(wx.Panel):
         self.catalog = None
 
     def update_pane(self):
+        def as_event(funct):
+            def specific(event=None):
+                funct(self.translation_panel.tree, self.catalog, self.translation_panel)
+
+            return specific
         if self.info is not None:
             data = INTERFACE.get(self.info)
             desc = data['description']
             self.text_information_description.SetValue(desc)
+            self.sizer_operations.Clear(True)
+            for cmd in data['commands']:
+                button = wx.Button(self, wx.ID_ANY, cmd['name'])
+                self.sizer_operations.Add(button, 0, 0, 0)
+                self.Bind(wx.EVT_BUTTON, as_event(cmd["command"]), button.GetId())
+            self.Layout()
 
 
 class PoboyWindow(wx.Frame):
