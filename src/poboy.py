@@ -1086,16 +1086,15 @@ class TranslationPanel(wx.Panel):
             if msgid[-1] == " " or msgstr[-1] == " ":
                 classes.append(catalog.warning_end_space)
 
-        if message.python_format:
-            p0 = list(PRINTF_RE.findall(msgid))
-            p1 = list(PRINTF_RE.findall(msgstr))
-            if len(p0) == len(p0):
-                for a, b in zip(p0,p1):
-                    if a != b:
-                        classes.append(catalog.error_printf)
-                        break
-            else:
-                classes.append(catalog.error_printf)
+        p0 = list(PRINTF_RE.findall(msgid))
+        p1 = list(PRINTF_RE.findall(msgstr))
+        if len(p0) == len(p1):
+            for a, b in zip(p0,p1):
+                if a != b:
+                    classes.append(catalog.error_printf)
+                    break
+        else:
+            classes.append(catalog.error_printf)
 
         if msgid[0].isupper() != msgstr[0].isupper():
             classes.append(catalog.warning_start_capital)
