@@ -333,6 +333,7 @@ def fuzzy_match(tree, catalog, panel):
             new_message.string = copy(cur_message.string)
             new_message.fuzzy = True
             new_message.modified = True
+            panel.message_revalidate(catalog, new_message)
 
 INTERFACE = {
     "new": {
