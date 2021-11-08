@@ -316,6 +316,10 @@ For example, translating "percent" from English to German may be translated "Pro
 Printf commands intend to have values inserted for the printf tokens. If these are not present or if they occur in the wrong order this may cause the program to crash.""",
         "commands": []
     },
+    "error_catalog-locale": {
+        "description": """Locale and the base directory are not equal.""",
+        "commands": []
+    },
     "fuzzy": {
         "description": """Fuzzy Messages are translated but suspect. These could be close matches during an update process or automatically translated by a machine. The fuzziness of the translation is an indication of the trust we should not have in the utility of this translation.""",
         "commands": []
@@ -757,7 +761,7 @@ class TranslationPanel(wx.Panel):
             catalog.item = tree.AppendItem(
                 catalog.item,
                 _("%s, locale != directory") % str(catalog.locale),
-                data=(catalog, "catalog_error"),
+                data=(catalog, "error_catalog-locale"),
             )
             tree.SetItemTextColour(catalog.item, wx.RED)
 
@@ -1252,6 +1256,8 @@ class SingleMessagePanel(wx.Panel):
         self.text_comment = wx.TextCtrl(
             self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
         )
+        self.text_comment.SetFont(
+            wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
         sizer_comment.Add(self.text_comment, 3, wx.EXPAND, 0)
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -1273,11 +1279,15 @@ class SingleMessagePanel(wx.Panel):
         self.text_original_text = wx.TextCtrl(
             self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
         )
+        self.text_original_text.SetFont(
+            wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
         sizer_comment.Add(self.text_original_text, 6, wx.EXPAND, 0)
 
         self.text_translated_text = wx.TextCtrl(
             self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER
         )
+        self.text_translated_text.SetFont(
+            wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
         sizer_comment.Add(self.text_translated_text, 6, wx.EXPAND, 0)
 
         self.SetSizer(sizer_comment)
