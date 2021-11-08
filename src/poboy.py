@@ -625,14 +625,41 @@ class TranslationPanel(wx.Panel):
         with wx.BusyInfo(_("Rebuilding Tree...")):
             self._tree_rebuild()
 
-    def _tree_rebuild(self):
+    def _tree_build_template(self):
         tree = self.tree
-        tree.DeleteChildren(self.root)
         try:
             catalog = self.project.catalogs[TEMPLATE]
             catalog.item = tree.AppendItem(
                 self.root, _("Template"), data=(catalog, "template")
             )
+            if len(catalog.new):
+                catalog.workflow_added = tree.AppendItem(
+                    catalog.item, _("Added"), data=(catalog, "added")
+                )
+                tree.SetItemTextColour(catalog.workflow_added, wx.GREEN)
+                for message in catalog.new:
+                    msgid = str(message.id)
+                    name = msgid.strip()
+                    if name == HEADER:
+                        name = _("HEADER")
+                    message.item = tree.AppendItem(
+                        catalog.workflow_added, name, data=(catalog, message)
+                    )
+                    self.colorize_by_message(message.item, message, True)
+            if len(catalog.orphans):
+                catalog.workflow_removed = tree.AppendItem(
+                    catalog.item, _("Removed"), data=(catalog, "removed")
+                )
+                tree.SetItemTextColour(catalog.workflow_removed, wx.RED)
+                for message in catalog.orphans:
+                    msgid = str(message.id)
+                    name = msgid.strip()
+                    if name == HEADER:
+                        name = _("HEADER")
+                    message.item = tree.AppendItem(
+                        catalog.workflow_removed, name, data=(catalog, message)
+                    )
+                    self.colorize_by_message(message.item, message, True)
             for message in catalog:
                 msgid = str(message.id)
                 name = msgid.strip()
@@ -646,104 +673,113 @@ class TranslationPanel(wx.Panel):
         except KeyError:
             self.template = None
 
+    def _tree_build_catalog(self, locale, catalog):
+        tree = self.tree
+        catalog.item = tree.AppendItem(self.root, locale, data=(catalog, "root"))
+        if str(catalog.locale) != locale:
+            catalog.item = tree.AppendItem(
+                catalog.item,
+                _("%s, locale != directory") % str(catalog.locale),
+                data=(catalog, "catalog_error"),
+            )
+            tree.SetItemTextColour(catalog.item, wx.RED)
+
+        catalog.errors = tree.AppendItem(
+            catalog.item, _("Errors"), data=(catalog, "errors")
+        )
+        tree.SetItemTextColour(catalog.errors, wx.RED)
+
+        catalog.error_printf = tree.AppendItem(
+            catalog.errors, _("printf-tokens"), data=(catalog, "error-printf")
+        )
+
+        catalog.issues = tree.AppendItem(
+            catalog.item, _("Issues"), data=(catalog, "issues")
+        )
+        tree.SetItemTextColour(catalog.issues, wx.Colour(127, 127, 0))
+
+        catalog.warning_equal = tree.AppendItem(
+            catalog.issues, _("msgid==msgstr"), data=(catalog, "issue-equal")
+        )
+        catalog.warning_start_capital = tree.AppendItem(
+            catalog.issues, _("capitalization"), data=(catalog, "issue-capitals")
+        )
+        catalog.warning_end_punct = tree.AppendItem(
+            catalog.issues,
+            _("ending punctuation"),
+            data=(catalog, "issue-punctuation"),
+        )
+        catalog.warning_end_space = tree.AppendItem(
+            catalog.issues,
+            _("ending whitespace"),
+            data=(catalog, "issue-ending-whitespace"),
+        )
+        catalog.warning_double_space = tree.AppendItem(
+            catalog.issues, _("double space"), data=(catalog, "issue-double-space")
+        )
+
+        catalog.workflow_new = tree.AppendItem(
+            catalog.item, _("New"), data=(catalog, "new")
+        )
+        catalog.workflow_orphans = tree.AppendItem(
+            catalog.item, _("Orphans"), data=(catalog, "orphan")
+        )
+        catalog.workflow_obsolete = tree.AppendItem(
+            catalog.item, _("Obsolete"), data=(catalog, "obsolete")
+        )
+        catalog.workflow_fuzzy = tree.AppendItem(
+            catalog.item, _("Fuzzy"), data=(catalog, "fuzzy")
+        )
+        catalog.workflow_untranslated = tree.AppendItem(
+            catalog.item, _("Untranslated"), data=(catalog, "untranslated")
+        )
+        catalog.workflow_translated = tree.AppendItem(
+            catalog.item, _("Translated"), data=(catalog, "translated")
+        )
+        catalog.workflow_all = tree.AppendItem(
+            catalog.item, _("All"), data=(catalog, "all")
+        )
+        for message in catalog:
+            msgid = str(message.id)
+            name = msgid.strip()
+            if name == HEADER:
+                name = _("HEADER")
+            message.item = tree.AppendItem(
+                catalog.workflow_all, name, data=(catalog, message)
+            )
+            self.colorize_by_message(message.item, message)
+            self.message_revalidate(catalog, message)
+        for m in catalog.obsolete:
+            message = catalog.obsolete[m]
+            msgid = str(message.id)
+            name = msgid.strip()
+            if name == HEADER:
+                continue
+            message.item = tree.AppendItem(
+                catalog.workflow_obsolete, name, data=(catalog, message)
+            )
+            self.colorize_by_message(message.item, message)
+        for m in catalog.new:
+            message = catalog.new[m]
+            msgid = str(message.id)
+            name = msgid.strip()
+            if name == HEADER:
+                continue
+            message.item = tree.AppendItem(
+                catalog.workflow_new, name, data=(catalog, message)
+            )
+            self.colorize_by_message(message.item, message, True)
+
+    def _tree_rebuild(self):
+        tree = self.tree
+        tree.DeleteChildren(self.root)
+        self._tree_build_template()
         for m in self.project.catalogs:
             if m == TEMPLATE:
                 continue
             catalog = self.project.catalogs[m]
-            catalog.item = tree.AppendItem(self.root, m, data=(catalog, "root"))
-            if str(catalog.locale) != m:
-                catalog.item = tree.AppendItem(
-                    catalog.item,
-                    _("%s, locale != directory") % str(catalog.locale),
-                    data=(catalog, "catalog_error"),
-                )
-                tree.SetItemTextColour(catalog.item, wx.RED)
+            self._tree_build_catalog(m, catalog)
 
-            catalog.errors = tree.AppendItem(
-                catalog.item, _("Errors"), data=(catalog, "errors")
-            )
-            tree.SetItemTextColour(catalog.errors, wx.RED)
-
-            catalog.error_printf = tree.AppendItem(
-                catalog.errors, _("printf-tokens"), data=(catalog, "error-printf")
-            )
-
-            catalog.issues = tree.AppendItem(
-                catalog.item, _("Issues"), data=(catalog, "issues")
-            )
-            tree.SetItemTextColour(catalog.issues, wx.Colour(127, 127, 0))
-
-            catalog.warning_equal = tree.AppendItem(
-                catalog.issues, _("msgid==msgstr"), data=(catalog, "issue-equal")
-            )
-            catalog.warning_start_capital = tree.AppendItem(
-                catalog.issues, _("capitalization"), data=(catalog, "issue-capitals")
-            )
-            catalog.warning_end_punct = tree.AppendItem(
-                catalog.issues,
-                _("ending punctuation"),
-                data=(catalog, "issue-punctuation"),
-            )
-            catalog.warning_end_space = tree.AppendItem(
-                catalog.issues,
-                _("ending whitespace"),
-                data=(catalog, "issue-ending-whitespace"),
-            )
-            catalog.warning_double_space = tree.AppendItem(
-                catalog.issues, _("double space"), data=(catalog, "issue-double-space")
-            )
-
-            catalog.workflow_new = tree.AppendItem(
-                catalog.item, _("New"), data=(catalog, "new")
-            )
-            catalog.workflow_orphans = tree.AppendItem(
-                catalog.item, _("Orphans"), data=(catalog, "orphan")
-            )
-            catalog.workflow_obsolete = tree.AppendItem(
-                catalog.item, _("Obsolete"), data=(catalog, "obsolete")
-            )
-            catalog.workflow_fuzzy = tree.AppendItem(
-                catalog.item, _("Fuzzy"), data=(catalog, "fuzzy")
-            )
-            catalog.workflow_untranslated = tree.AppendItem(
-                catalog.item, _("Untranslated"), data=(catalog, "untranslated")
-            )
-            catalog.workflow_translated = tree.AppendItem(
-                catalog.item, _("Translated"), data=(catalog, "translated")
-            )
-            catalog.workflow_all = tree.AppendItem(
-                catalog.item, _("All"), data=(catalog, "all")
-            )
-            for message in catalog:
-                msgid = str(message.id)
-                name = msgid.strip()
-                if name == HEADER:
-                    name = _("HEADER")
-                message.item = tree.AppendItem(
-                    catalog.workflow_all, name, data=(catalog, message)
-                )
-                self.colorize_by_message(message.item, message)
-                self.message_revalidate(catalog, message)
-            for m in catalog.obsolete:
-                message = catalog.obsolete[m]
-                msgid = str(message.id)
-                name = msgid.strip()
-                if name == HEADER:
-                    continue
-                message.item = tree.AppendItem(
-                    catalog.workflow_obsolete, name, data=(catalog, message)
-                )
-                self.colorize_by_message(message.item, message)
-            for m in catalog.new:
-                message = catalog.new[m]
-                msgid = str(message.id)
-                name = msgid.strip()
-                if name == HEADER:
-                    continue
-                message.item = tree.AppendItem(
-                    catalog.workflow_new, name, data=(catalog, message)
-                )
-                self.colorize_by_message(message.item, message, True)
         tree.ExpandAll()
         self.Layout()
 
