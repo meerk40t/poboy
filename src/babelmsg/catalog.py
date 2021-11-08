@@ -811,6 +811,21 @@ class Catalog(object):
         if key in self._messages:
             del self._messages[key]
 
+    def difference(self, template):
+        messages = self._messages
+        remaining = messages.copy()
+
+        for message in template:
+            if message.id:
+                key = self._key_for(message.id, message.context)
+                if key in messages:
+                    remaining.pop(message.id)
+                else:
+                    self.new[message.id] = message.clone()
+        for msgid in remaining:
+            message = remaining[msgid]
+            self.orphans[msgid] = message
+
     def update(
         self,
         template,

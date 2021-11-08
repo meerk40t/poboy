@@ -344,6 +344,9 @@ class TranslationProject:
 
     def babel_extract(self):
         catalog = generate_template_from_python_package(self.directory)
+        template = self.catalogs.get(TEMPLATE)
+        if template is not None:
+            catalog.difference(template)
         self.catalogs[TEMPLATE] = catalog
 
     def calculate_updates(self):
