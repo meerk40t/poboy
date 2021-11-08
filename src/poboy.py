@@ -393,8 +393,14 @@ class TranslationPanel(wx.Panel):
         self.panel_file_information = FileInformationPanel(self, wx.ID_ANY, translation_panel=self)
         sizer_catalog_statistics.Add(self.panel_file_information, 3, wx.EXPAND, 0)
 
+        sizer_template_statistics = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(sizer_template_statistics, 3, wx.EXPAND, 0)
+
         self.panel_template = TemplatePanel(self, wx.ID_ANY, translation_panel=self)
-        main_sizer.Add(self.panel_template, 3, wx.EXPAND, 0)
+        sizer_template_statistics.Add(self.panel_template, 3, wx.EXPAND, 0)
+
+        self.panel_template_file_information = FileInformationPanel(self, wx.ID_ANY, translation_panel=self)
+        sizer_template_statistics.Add(self.panel_template_file_information, 3, wx.EXPAND, 0)
 
         self.panel_project = ProjectPanel(self, wx.ID_ANY, translation_panel=self)
         main_sizer.Add(self.panel_project, 3, wx.EXPAND, 0)
@@ -820,6 +826,7 @@ class TranslationPanel(wx.Panel):
         self.panel_template.Hide()
         self.panel_catalog.Hide()
         self.panel_file_information.Hide()
+        self.panel_template_file_information.Hide()
         self.panel_info.Hide()
         self.panel_project.Show()
         self.Layout()
@@ -830,6 +837,7 @@ class TranslationPanel(wx.Panel):
         self.panel_template.Hide()
         self.panel_catalog.Hide()
         self.panel_file_information.Hide()
+        self.panel_template_file_information.Hide()
         self.panel_info.Show()
         self.panel_project.Hide()
         self.Layout()
@@ -840,6 +848,7 @@ class TranslationPanel(wx.Panel):
         self.panel_template.Hide()
         self.panel_catalog.Hide()
         self.panel_file_information.Hide()
+        self.panel_template_file_information.Hide()
         self.panel_info.Hide()
         self.panel_project.Hide()
         self.Layout()
@@ -850,6 +859,7 @@ class TranslationPanel(wx.Panel):
         self.panel_catalog.Show()
         self.panel_template.Hide()
         self.panel_file_information.Show()
+        self.panel_template_file_information.Hide()
         self.panel_info.Hide()
         self.panel_project.Hide()
         self.Layout()
@@ -859,7 +869,8 @@ class TranslationPanel(wx.Panel):
         self.panel_statistics.Hide()
         self.panel_catalog.Hide()
         self.panel_template.Show()
-        self.panel_file_information.Show()
+        self.panel_file_information.Hide()
+        self.panel_template_file_information.Show()
         self.panel_info.Hide()
         self.panel_project.Hide()
         self.Layout()
@@ -888,10 +899,14 @@ class TranslationPanel(wx.Panel):
                         self.panel_file_information.update_pane()
                     elif info == "template":
                         self.show_template_panel()
-                        self.panel_file_information.catalog = catalog
+                        self.panel_template_file_information.catalog = catalog
                         self.panel_template.template = catalog
                         self.panel_template.update_pane()
-                        self.panel_file_information.update_pane()
+                        self.panel_template_file_information.update_pane()
+                    elif info == "project":
+                        self.show_project_panel()
+                        self.panel_project.project = self.project
+                        self.panel_project.update_pane()
                     else:
                         self.show_info_panel()
                         self.panel_info.catalog = catalog
@@ -1386,9 +1401,9 @@ class StatisticsPanel(wx.Panel):
             if m.fuzzy
         ]
         fuzz = len(fuzzy)
-        self.text_messages_translated.SetLabelText(str(fuzz))
-        self.gauge_messages.SetRange(total)
-        self.gauge_messages.SetValue(fuzz)
+        self.text_fuzzy_translated.SetLabelText(str(fuzz))
+        self.gauge_fuzzy.SetRange(total)
+        self.gauge_fuzzy.SetValue(fuzz)
 
 
 class FileInformationPanel(wx.Panel):
@@ -1425,12 +1440,14 @@ class FileInformationPanel(wx.Panel):
         self.catalog = None
 
     def update_pane(self):
-        self.text_file_location.SetLabelText(self.catalog.filename)
+        filename = self.catalog.filename
+        self.text_file_location.SetLabelText(str(filename))
         filesize = 0
-        if os.path.exists(self.catalog.filename):
-            filesize = os.path.getsize(self.catalog.filename)
+        if filename is not None:
+            if os.path.exists(filename):
+                filesize = os.path.getsize(filename)
         self.text_file_size.SetLabelText(str(filesize))
-        if self.catalog.filename is None or self.catalog.filename.endswith(".pot"):
+        if filename is None or filename.endswith(".pot"):
             self.text_file_type.SetLabelText("Gettext Portable Object Template")
         else:
             self.text_file_type.SetLabelText("Gettext Portable Object File")
