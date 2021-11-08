@@ -235,8 +235,7 @@ def save(catalog, filename=None, write_mo=True):
 
 def load(filename):
     with open(filename, "r", encoding="utf-8") as file:
-        catalog = pofile.read_po(file)
-        catalog.filename = filename
+        catalog = pofile.read_po(file, filename=filename)
         return catalog
 
 
@@ -359,8 +358,9 @@ class TranslationProject:
                 continue
             for catalog in self.catalogs.values():
                 if msgid not in catalog._messages:
-                    catalog.obsolete[msgid] = message.clone()
-                    del catalog._messages[msgid]
+                    new_message = message.clone()
+                    catalog.obsolete[msgid] = new_message
+                    new_message.modified = True
 
     def generate(self, sources_directory):
         catalog = generate_catalog_from_python_package(sources_directory)
@@ -520,7 +520,14 @@ class TranslationPanel(wx.Panel):
                 if message.id == message.string:
                     message.string = None
                     self.message_revalidate(catalog,message)
-        # self.tree_rebuild_tree()
+
+    def move_orphans_to_obsolete(self):
+        for catalog in self.project.catalogs.values():
+            for m in list(catalog.orphans.values()):
+                m.modified = True
+                catalog.obsolete[m.id] = m
+                del catalog.orphans[m.id]
+                self.message_revalidate(catalog, m)
 
     def full_update_translations(self):
         self.project.perform_full_updates()
@@ -1504,8 +1511,6 @@ class PoboyWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_action_new_translation, item)
         all_translation_submenu = wx.Menu()
 
-        item = all_translation_submenu.Append(wx.ID_ANY, "Import New", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_update_translation, item)
         item = all_translation_submenu.Append(wx.ID_ANY, "Delete msgid==msgstr", "")
         self.Bind(wx.EVT_MENU, self.on_menu_translation_delete_equal, item)
         item = all_translation_submenu.Append(wx.ID_ANY, "Obsolete all orphans", "")
@@ -1590,8 +1595,7 @@ class PoboyWindow(wx.Frame):
         self.panel.delete_equals()
 
     def on_menu_obsolete_orphans(self, event):
-        print("Event handler 'on_menu_obsolete_orphans' not implemented!")
-        event.Skip()
+        self.panel.move_orphans_to_obsolete()
 
     def on_menu_delete_orphans(self, event):
         print("Event handler 'on_menu_delete_orphans' not implemented!")

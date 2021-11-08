@@ -86,6 +86,15 @@ class PoFileError(Exception):
         self.line = line
         self.lineno = lineno
 
+class MalformedMessageError(Exception):
+    """Exception is thrown when a message is malformed."""
+
+    def __init__(self, filename, lineno, original_lines):
+        super(MalformedMessageError, self).__init__(
+            "Message in catalog {filename}, malformed at line {lineno}.\n{lines}\n".format(filename=filename, lineno=lineno, lines="".join(original_lines))
+        )
+        self.lineno = lineno
+
 
 class _NormalizedString:
     def __init__(self, *args):
@@ -174,6 +183,8 @@ class PoFileParser:
         clear the state ready to process the next message.
         """
         self.translations.sort()
+        if len(self.translations) == 0:
+            raise MalformedMessageError(self.catalog.filename, self.offset, self.lines)
         if len(self.messages) > 1:
             msgid = tuple([m.denormalize() for m in self.messages])
         else:
@@ -213,11 +224,14 @@ class PoFileParser:
         else:
             self.catalog[msgid] = message
         self.counter += 1
-        self._reset_message_state()
 
     def _finish_current_message(self):
         if self.messages:
-            self._add_message()
+            try:
+                self._add_message()
+            except MalformedMessageError as e:
+                print(e)
+            self._reset_message_state()
 
     def _process_message_line(self, lineno, line, obsolete=False):
         if line.startswith('"'):
@@ -343,6 +357,7 @@ class PoFileParser:
             self.messages.append(_NormalizedString(u'""'))
             self.translations.append([0, _NormalizedString(u'""')])
             self._add_message()
+            self._reset_message_state()
 
     def _invalid_pofile(self, line, lineno, msg):
         assert isinstance(line, str)
@@ -359,6 +374,7 @@ def read_po(
     fileobj,
     locale=None,
     domain=None,
+    filename=None,
     ignore_obsolete: bool = False,
     charset: str = None,
     abort_invalid: bool = False,
@@ -405,11 +421,13 @@ def read_po(
                    if the catalog is not bound to a locale (which basically
                    means it's a template)
     :param domain: the message domain
+    :param filename: the filename being read
     :param ignore_obsolete: whether to ignore obsolete messages in the input
     :param charset: the character set of the catalog.
     :param abort_invalid: abort read if po file is invalid
     """
     catalog = Catalog(locale=locale, domain=domain, charset=charset)
+    catalog.filename = filename
     parser = PoFileParser(catalog, ignore_obsolete, abort_invalid=abort_invalid)
     parser.parse(fileobj)
     return catalog
