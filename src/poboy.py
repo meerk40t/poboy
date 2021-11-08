@@ -1518,26 +1518,35 @@ class ProjectPanel(wx.Panel):
 
         sizer_22 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project"), wx.VERTICAL)
 
-        sizer_23 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project Name"), wx.VERTICAL)
+        sizer_24 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project Directory:"), wx.HORIZONTAL)
+        sizer_22.Add(sizer_24, 0, wx.EXPAND, 0)
+
+        self.text_project_directory = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        sizer_24.Add(self.text_project_directory, 0, wx.EXPAND, 0)
+
+        self.button_open_project_directory = wx.Button(self, wx.ID_ANY, "Open")
+        sizer_24.Add(self.button_open_project_directory, 0, 0, 0)
+
+        sizer_23 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project Name:"), wx.VERTICAL)
         sizer_22.Add(sizer_23, 0, wx.EXPAND, 0)
 
         self.text_project_name = wx.TextCtrl(self, wx.ID_ANY, "")
         sizer_23.Add(self.text_project_name, 0, wx.EXPAND, 0)
 
-        sizer_25 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Charset"), wx.VERTICAL)
+        sizer_25 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Charset:"), wx.VERTICAL)
         sizer_22.Add(sizer_25, 0, wx.EXPAND, 0)
 
         self.combo_project_charset = wx.ComboBox(self, wx.ID_ANY, choices=["UTF-8", ""], style=wx.CB_DROPDOWN)
         self.combo_project_charset.SetSelection(0)
         sizer_25.Add(self.combo_project_charset, 0, wx.EXPAND, 0)
 
-        sizer_27 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Template Location"), wx.VERTICAL)
+        sizer_27 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Template Location:"), wx.VERTICAL)
         sizer_22.Add(sizer_27, 0, wx.EXPAND, 0)
 
         self.text_project_pot_file = wx.TextCtrl(self, wx.ID_ANY, "/locale/messages.pot")
         sizer_27.Add(self.text_project_pot_file, 0, wx.EXPAND, 0)
 
-        sizer_19 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Structure"), wx.VERTICAL)
+        sizer_19 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Structure:"), wx.VERTICAL)
         sizer_22.Add(sizer_19, 1, wx.EXPAND, 0)
 
         self.text_template_structure = wx.TextCtrl(self, wx.ID_ANY, "/locale/LC_MESSAGES/<lang>/<project>.po")
@@ -1559,6 +1568,7 @@ class ProjectPanel(wx.Panel):
 
         self.Layout()
 
+        self.Bind(wx.EVT_BUTTON, self.on_project_open_directory, self.button_open_project_directory)
         self.Bind(wx.EVT_TEXT, self.on_text_template_name, self.text_project_name)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_name, self.text_project_name)
         self.Bind(wx.EVT_COMBOBOX, self.on_combo_template_charset, self.combo_project_charset)
@@ -1567,7 +1577,10 @@ class ProjectPanel(wx.Panel):
         self.Bind(wx.EVT_TEXT, self.on_text_template_structure, self.text_template_structure)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_structure, self.text_template_structure)
         # end wxGlade
-        self.project = None
+
+    def on_project_open_directory(self, event):  # wxGlade: ProjectPanel.<event_handler>
+        print("Event handler 'on_project_open_directory' not implemented!")
+        event.Skip()
 
     def on_text_template_name(self, event):  # wxGlade: ProjectPanel.<event_handler>
         print("Event handler 'on_text_template_name' not implemented!")
@@ -1583,7 +1596,6 @@ class ProjectPanel(wx.Panel):
 
     def update_pane(self):
         pass
-
 
 class InfoPanel(wx.Panel):
     def __init__(self, *args, translation_panel=None, **kwds):
