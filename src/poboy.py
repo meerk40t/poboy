@@ -1830,6 +1830,7 @@ class InfoPanel(wx.Panel):
         self.text_information_description = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.text_information_description.SetFont(
             wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+
         sizer_main.Add(self.text_information_description, 1, wx.EXPAND, 0)
 
         self.sizer_operations = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Operations"), wx.VERTICAL)
@@ -1852,12 +1853,15 @@ class InfoPanel(wx.Panel):
             data = INTERFACE.get(self.info)
             desc = data['description']
             self.text_information_description.SetValue(desc)
+
             self.sizer_operations.Clear(True)
             for cmd in data['commands']:
                 button = wx.Button(self, wx.ID_ANY, cmd['name'])
-                self.sizer_operations.Add(button, 0, 0, 0)
                 self.Bind(wx.EVT_BUTTON, as_event(cmd["command"]), button)
+                self.sizer_operations.Add(button, 0, 0, 0)
             self.Layout()
+        self.Update()
+        self.Refresh()
 
 
 class PoboyWindow(wx.Frame):
