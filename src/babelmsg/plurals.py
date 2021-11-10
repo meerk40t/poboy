@@ -11,8 +11,6 @@
 
 from operator import itemgetter
 
-from .core import Locale
-
 PLURALS = {
     # Afar
     # 'aa': (),
