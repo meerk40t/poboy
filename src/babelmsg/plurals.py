@@ -11,7 +11,7 @@
 
 from operator import itemgetter
 
-from src.babelmsg.core import Locale
+from .core import Locale
 
 PLURALS = {
     # Afar

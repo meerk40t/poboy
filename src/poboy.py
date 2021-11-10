@@ -8,11 +8,9 @@ from datetime import datetime
 
 import wx
 
-from babelmsg import pofile, mofile, extract
+from babelmsg import pofile, mofile, extract, Catalog
 from wx.lib.embeddedimage import PyEmbeddedImage
 from difflib import get_close_matches
-
-from src.babelmsg import Catalog
 
 PUNCTUATION = (".", "?", "!", ":", ";")
 TEMPLATE = ""
@@ -416,7 +414,7 @@ For example, translating "percent" from English to German may be translated "Pro
     },
     "error-printf": {
         "description": """Messages with this error have different or inconsistent printf commands too many or too few %s, %f, %d commands or these commands in the wrong order.
-        
+
 Printf commands intend to have values inserted for the printf tokens. If these are not present or if they occur in the wrong order this may cause the program to crash.""",
         "commands": []
     },
@@ -438,7 +436,7 @@ Printf commands intend to have values inserted for the printf tokens. If these a
     },
     "all": {
         "description": """List of every message within the current catalog.
-        
+
 Note: All includes only those messages which are actively in the catalog. This will not include, obsolete, or new messages but shall include orphans.""",
         "commands": []
     }
