@@ -41,7 +41,7 @@ LOCALE_ALIASES = {
     "da": "da_DK",
     "de": "de_DE",
     "el": "el_GR",
-    "en": "en_US",
+    "en": "en_GB",
     "es": "es_ES",
     "et": "et_EE",
     "fa": "fa_IR",
@@ -60,6 +60,7 @@ LOCALE_ALIASES = {
     "lv": "lv_LV",
     "mk": "mk_MK",
     "nl": "nl_NL",
+    "nb": "nb_NO",
     "nn": "nn_NO",
     "no": "nb_NO",
     "pl": "pl_PL",
@@ -72,6 +73,7 @@ LOCALE_ALIASES = {
     "th": "th_TH",
     "tr": "tr_TR",
     "uk": "uk_UA",
+    "zh": "zh_CN",
 }
 
 
