@@ -694,7 +694,7 @@ class TranslationPanel(wx.Panel):
             pathname = fileDialog.GetPath()
             if not pathname.lower().endswith(".pot"):
                 pathname += ".pot"
-            self.project.save(TEMPLATE, pathname)
+            self.project.save(TEMPLATE)
             return pathname
 
     def open_load_translation_dialog(self):
