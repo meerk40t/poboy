@@ -694,7 +694,9 @@ class TranslationPanel(wx.Panel):
             pathname = fileDialog.GetPath()
             if not pathname.lower().endswith(".pot"):
                 pathname += ".pot"
-            self.project.save(TEMPLATE)
+            catalog = self.project.catalogs[TEMPLATE]
+
+            self.project.save(catalog)
             return pathname
 
     def open_load_translation_dialog(self):
@@ -793,8 +795,9 @@ class TranslationPanel(wx.Panel):
             self.open_save_translation_dialog()
 
     def try_save_working_file_template(self):
+        catalog = self.project.catalogs[TEMPLATE]
         try:
-            save(TEMPLATE)
+            save(catalog)
         except FileNotFoundError:
             self.open_save_template_dialog()
 
@@ -943,7 +946,8 @@ class TranslationPanel(wx.Panel):
             message.item = tree.AppendItem(
                 catalog.workflow_new, name, data=(catalog, message)
             )
-            tree.SetItemTextColour(message.item, self.color_template_translated if message.string else self.color_template)
+            if message.item and message.item.IsOk():
+                tree.SetItemTextColour(message.item, self.color_template_translated if message.string else self.color_template)
 
     def _tree_rebuild(self):
         tree = self.tree
