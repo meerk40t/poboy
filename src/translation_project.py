@@ -65,7 +65,7 @@ class TranslationProject:
             save(catalog)
 
     def save(self, catalog):
-        save(catalog, catalog.filename)
+        save(catalog)
 
     def save_locale(self, locale: str):
         catalog = self.catalogs[locale]
@@ -108,11 +108,12 @@ class TranslationProject:
             )
 
     def babel_extract(self):
-        catalog = generate_template_from_python_package(self.directory)
+        new_template = generate_template_from_python_package(self.directory)
         template = self.catalogs.get(TEMPLATE)
         if template is not None:
-            catalog.difference(template)
-        self.catalogs[TEMPLATE] = catalog
+            new_template.difference(template)
+            new_template.properties_of(template)
+        self.catalogs[TEMPLATE] = new_template
 
     def calculate_updates(self):
         template = self.catalogs.get(TEMPLATE)

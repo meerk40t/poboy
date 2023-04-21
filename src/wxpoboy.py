@@ -142,8 +142,6 @@ class TranslationPanel(wx.Panel):
         kwds["style"] = kwds.get("style", 0) | wx.WANTS_CHARS
         wx.Panel.__init__(self, *args, **kwds)
 
-        self.template = None
-        self.catalog = None
         self.project = TranslationProject()
 
         self.do_not_update = False
@@ -339,6 +337,8 @@ class TranslationPanel(wx.Panel):
         return directory
 
     def open_save_translation_dialog(self):
+        if self.catalog is None:
+            return
         with wx.FileDialog(
             self,
             _("Save Translation"),
@@ -350,7 +350,8 @@ class TranslationPanel(wx.Panel):
             pathname = fileDialog.GetPath()
             if not pathname.lower().endswith(".po"):
                 pathname += ".po"
-            save(self.catalog, pathname)
+            catalog = self.project.catalogs[self.catalog]
+            save(self.catalog, filename=pathname)
             return pathname
 
     def open_save_template_dialog(self):
@@ -459,7 +460,9 @@ class TranslationPanel(wx.Panel):
         self.tree_rebuild_tree()
 
     def try_save_working_file_translation(self):
-        catalog = self.catalog
+        if self.catalog is None:
+            return
+        catalog = self.project.catalogs[self.catalog]
         try:
             save(catalog)
         except FileNotFoundError:
