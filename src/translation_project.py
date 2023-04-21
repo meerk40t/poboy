@@ -97,8 +97,8 @@ class TranslationProject:
         if template is None:
             return
 
-        for catalog in self.catalogs.values():
-            if catalog.locale is None:
+        for key, catalog in self.catalogs.items():
+            if key == TEMPLATE:
                 continue  # Cannot update the template
             catalog.update(
                 template,

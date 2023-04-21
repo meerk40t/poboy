@@ -141,7 +141,7 @@ class TranslationPanel(wx.Panel):
         # begin wxGlade: TranslationPanel.__init__
         kwds["style"] = kwds.get("style", 0) | wx.WANTS_CHARS
         wx.Panel.__init__(self, *args, **kwds)
-
+        self.catalog = ""
         self.project = TranslationProject()
 
         self.do_not_update = False
@@ -351,7 +351,7 @@ class TranslationPanel(wx.Panel):
             if not pathname.lower().endswith(".po"):
                 pathname += ".po"
             catalog = self.project.catalogs[self.catalog]
-            save(self.catalog, filename=pathname)
+            save(catalog, filename=pathname)
             return pathname
 
     def open_save_template_dialog(self):
@@ -666,8 +666,9 @@ class TranslationPanel(wx.Panel):
         if t is None:
             return
         n = self.tree.GetNextSibling(t)
+        catalog = self.project.catalogs[self.catalog]
         self.message_revalidate(
-            self.catalog, self.panel_message_single.selected_message
+            catalog, self.panel_message_single.selected_message
         )
         if n.IsOk():
             self.tree.SelectItem(n)
@@ -680,8 +681,9 @@ class TranslationPanel(wx.Panel):
         if t is None:
             return
         n = self.tree.GetPrevSibling(t)
+        catalog = self.project.catalogs[self.catalog]
         self.message_revalidate(
-            self.catalog, self.panel_message_single.selected_message
+            catalog, self.panel_message_single.selected_message
         )
         if n.IsOk():
             self.tree.SelectItem(n)
@@ -852,7 +854,9 @@ class TranslationPanel(wx.Panel):
             if len(data) > 0:
                 catalog, info = data[0]
                 if catalog is not None:
-                    self.catalog = catalog
+                    for key, value in self.project.catalogs.items():
+                        if catalog is value:
+                            self.catalog = key
                 self.panel_message_single.selected_catalog = catalog
                 if isinstance(info, str):
                     if info == "root":
