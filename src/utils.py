@@ -12,7 +12,8 @@ PRINTF_RE = re.compile(
 )
 
 
-def save(catalog, filename=None, write_mo=True):
+def save(catalog, write_mo=True):
+    filename = None
     if filename is None:
         filename = catalog.filename
     if filename is None:
