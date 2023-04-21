@@ -1,7 +1,7 @@
 import re
 import sys
 
-from src.poboy import PoboyWindow
+from src.wxpoboy import PoboyWindow
 
 
 def plugin(kernel, lifecycle):
