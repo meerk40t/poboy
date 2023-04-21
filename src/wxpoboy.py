@@ -9,9 +9,18 @@ import wx
 
 from assets import icons8_translation_50
 from src.translation_project import TranslationProject
-from src.utils import (HEADER, PRINTF_RE, PUNCTUATION, TEMPLATE,
-                       delete_orphans, fuzzy_match, move_new_to_general,
-                       obsolete_orphans, save, save_as_patch)
+from src.utils import (
+    HEADER,
+    PRINTF_RE,
+    PUNCTUATION,
+    TEMPLATE,
+    delete_orphans,
+    fuzzy_match,
+    move_new_to_general,
+    obsolete_orphans,
+    save,
+    save_as_patch,
+)
 
 _ = wx.GetTranslation
 

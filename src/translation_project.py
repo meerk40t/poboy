@@ -1,11 +1,15 @@
 import os
-import re
 from collections import OrderedDict
 from datetime import datetime
 
-from babelmsg import Catalog, extract, mofile, pofile
-from src.utils import (HEADER, TEMPLATE, generate_template_from_python_package,
-                       load, save)
+from babelmsg import mofile
+from src.utils import (
+    HEADER,
+    TEMPLATE,
+    generate_template_from_python_package,
+    load,
+    save,
+)
 
 
 class TranslationProject:

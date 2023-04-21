@@ -1,11 +1,6 @@
-import os
 import re
-from collections import OrderedDict
 from copy import copy
-from datetime import datetime
 from difflib import get_close_matches
-
-import wx
 
 from babelmsg import Catalog, extract, mofile, pofile
 
