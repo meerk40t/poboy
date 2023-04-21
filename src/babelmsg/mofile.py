@@ -14,7 +14,6 @@ import struct
 
 from .catalog import Catalog, Message
 
-
 LE_MAGIC = 0x950412DE
 BE_MAGIC = 0xDE120495
 

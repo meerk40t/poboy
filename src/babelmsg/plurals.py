@@ -344,7 +344,7 @@ def get_plural(locale):
     >>> str(tup)
     'nplurals=1; plural=0;'
     """
-    locale =str(locale)
+    locale = str(locale)
     try:
         tup = PLURALS[str(locale)]
     except KeyError:

@@ -11,8 +11,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from .catalog import TranslationError, PYTHON_FORMAT
-
+from .catalog import PYTHON_FORMAT, TranslationError
 
 #: list of format chars that are compatible to each other
 _string_format_compatibilities = [{"i", "d", "u"}, {"x", "X"}, {"f", "F", "g", "G"}]

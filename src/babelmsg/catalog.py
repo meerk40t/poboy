@@ -10,20 +10,21 @@
 """
 
 import re
-
 from cgi import parse_header
 from collections import OrderedDict
-from datetime import datetime, time as time_, timezone
+from copy import copy
+from datetime import datetime
+from datetime import time as time_
+from datetime import timezone
 from difflib import get_close_matches
 from email import message_from_string
-from copy import copy
 
 from .core import Locale, UnknownLocaleError
 from .plurals import get_plural
 
 __all__ = ["Message", "Catalog", "TranslationError"]
 
-from .util import distinct, _cmp
+from .util import _cmp, distinct
 
 PYTHON_FORMAT = re.compile(
     r"""
@@ -46,7 +47,7 @@ class Message(object):
     def __init__(
         self,
         id,
-        string=u"",
+        string="",
         locations=(),
         flags=(),
         auto_comments=(),
@@ -79,7 +80,7 @@ class Message(object):
         """
         self._id = id
         if not string and self.pluralizable:
-            string = (u"", u"")
+            string = ("", "")
         self._string = string
         self.locations = list(distinct(locations))
         self.flags = set(flags)
@@ -250,7 +251,7 @@ class TranslationError(Exception):
     translations are encountered."""
 
 
-DEFAULT_HEADER = u"""\
+DEFAULT_HEADER = """\
 # Translations template for PROJECT.
 # Copyright (C) YEAR ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
@@ -327,7 +328,7 @@ class Catalog(object):
         self.modified = False
         self.filename = filename
 
-        self.new = OrderedDict() # Dictionary of new messages from template
+        self.new = OrderedDict()  # Dictionary of new messages from template
         self.orphans = OrderedDict()  # Dictionary of orphaned events from messages
         self.obsolete = OrderedDict()  # Dictionary of obsolete messages
 
@@ -504,7 +505,7 @@ class Catalog(object):
             value = self._force_text(value, encoding=self.charset)
             if name == "project-id-version":
                 parts = value.split(" ")
-                self.project = u" ".join(parts[:-1])
+                self.project = " ".join(parts[:-1])
                 self.version = parts[-1]
             elif name == "report-msgid-bugs-to":
                 self.msgid_bugs_address = value
@@ -654,7 +655,9 @@ class Catalog(object):
         flags = set()
         if self.fuzzy:
             flags |= {"fuzzy"}
-        yield Message(u"", "\n".join(buf), flags=flags, original_lines=self.original_header)
+        yield Message(
+            "", "\n".join(buf), flags=flags, original_lines=self.original_header
+        )
         for key in self._messages:
             yield self._messages[key]
 
@@ -923,7 +926,7 @@ class Catalog(object):
                 if not isinstance(message.string, (list, tuple)):
                     fuzzy = True
                     message.string = tuple(
-                        [message.string] + ([u""] * (len(message.id) - 1))
+                        [message.string] + ([""] * (len(message.id) - 1))
                     )
                 elif len(message.string) != self.num_plurals:
                     fuzzy = True
@@ -949,7 +952,10 @@ class Catalog(object):
                         else:
                             matchkey = key
                         matches = get_close_matches(
-                            matchkey.lower().strip(), fuzzy_candidates.keys(), 1, cutoff=.85
+                            matchkey.lower().strip(),
+                            fuzzy_candidates.keys(),
+                            1,
+                            cutoff=0.85,
                         )
                         if matches:
                             newkey = matches[0]
@@ -966,7 +972,6 @@ class Catalog(object):
                 message = remaining[msgid]
                 self.obsolete[msgid] = message
                 message.modified = True
-
 
         if update_header_comment:
             # Allow the updated catalog's header to be rewritten based on the

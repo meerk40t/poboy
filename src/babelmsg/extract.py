@@ -18,13 +18,12 @@
 """
 
 import os
-from os.path import relpath
 import sys
-from tokenize import generate_tokens, COMMENT, NAME, OP, STRING
+from os.path import relpath
+from textwrap import dedent
+from tokenize import COMMENT, NAME, OP, STRING, generate_tokens
 
 from .util import parse_encoding, parse_future_flags, pathmatch
-from textwrap import dedent
-
 
 GROUP_NAME = "babel.extractors"
 
@@ -143,13 +142,13 @@ def extract_from_dir(
     if options_map is None:
         options_map = {}
 
-    directories = [ os.path.join(dirname,item) for item in os.listdir(dirname)]
-    directories = [ item for item in directories if os.path.isdir(item)]
+    directories = [os.path.join(dirname, item) for item in os.listdir(dirname)]
+    directories = [item for item in directories if os.path.isdir(item)]
 
     for directory in directories:
         items = list(os.listdir(directory))
         if "__init__.py" not in items:
-            continue # This is not a package.
+            continue  # This is not a package.
         items = [os.path.join(directory, item) for item in items]
         for item in items:
             if os.path.isdir(item):
@@ -158,17 +157,16 @@ def extract_from_dir(
                 if not os.path.basename(item).endswith(".py"):
                     continue
                 for message_tuple in check_and_call_extract_file(
-                        item,
-                        method_map,
-                        options_map,
-                        callback,
-                        keywords,
-                        comment_tags,
-                        strip_comment_tags,
-                        dirpath=dirname,
+                    item,
+                    method_map,
+                    options_map,
+                    callback,
+                    keywords,
+                    comment_tags,
+                    strip_comment_tags,
+                    dirpath=dirname,
                 ):
                     yield message_tuple
-
 
 
 def check_and_call_extract_file(

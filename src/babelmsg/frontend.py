@@ -20,10 +20,14 @@ import tempfile
 from collections import OrderedDict
 from configparser import RawConfigParser
 from datetime import datetime
+from distutils import log as distutils_log
+from distutils.cmd import Command as _Command
+from distutils.errors import DistutilsOptionError, DistutilsSetupError
 from io import StringIO
 from locale import getpreferredencoding
 
 from src.babelmsg.core import Locale, UnknownLocaleError
+
 from .catalog import Catalog
 from .extract import (
     DEFAULT_KEYWORDS,
@@ -33,9 +37,6 @@ from .extract import (
 )
 from .mofile import write_mo
 from .pofile import read_po, write_po
-from distutils import log as distutils_log
-from distutils.cmd import Command as _Command
-from distutils.errors import DistutilsOptionError, DistutilsSetupError
 
 
 def listify_value(arg, split=None):
@@ -953,7 +954,7 @@ class CommandLineInterface(object):
             identifiers = localedata.locale_identifiers()
             longest = max([len(identifier) for identifier in identifiers])
             identifiers.sort()
-            format = u"%%-%ds %%s" % (longest + 1)
+            format = "%%-%ds %%s" % (longest + 1)
             for identifier in identifiers:
                 locale = Locale.parse(identifier)
                 output = format % (identifier, locale.english_name)
