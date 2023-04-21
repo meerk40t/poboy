@@ -1,6 +1,5 @@
-import sys
-
 import re
+import sys
 
 from src.poboy import PoboyWindow
 

@@ -39,7 +39,7 @@ def distinct(iterable):
 
 # Regexp to match python magic encoding line
 PYTHON_MAGIC_COMMENT_re = re.compile(
-    br"[ \t\f]* \# .* coding[=:][ \t]*([-\w.]+)", re.VERBOSE
+    rb"[ \t\f]* \# .* coding[=:][ \t]*([-\w.]+)", re.VERBOSE
 )
 
 

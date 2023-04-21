@@ -12,11 +12,10 @@
 
 import os
 import re
-
 from typing import List
 
 from .catalog import Catalog, Message
-from .util import wraptext, _cmp
+from .util import _cmp, wraptext
 
 
 def unescape(string: str) -> str:
@@ -86,12 +85,15 @@ class PoFileError(Exception):
         self.line = line
         self.lineno = lineno
 
+
 class MalformedMessageError(Exception):
     """Exception is thrown when a message is malformed."""
 
     def __init__(self, filename, lineno, original_lines):
         super(MalformedMessageError, self).__init__(
-            "Message in catalog {filename}, malformed at line {lineno}.\n{lines}\n".format(filename=filename, lineno=lineno, lines="".join(original_lines))
+            "Message in catalog {filename}, malformed at line {lineno}.\n{lines}\n".format(
+                filename=filename, lineno=lineno, lines="".join(original_lines)
+            )
         )
         self.lineno = lineno
 
@@ -194,7 +196,7 @@ class PoFileParser:
             for idx, translation in self.translations:
                 if idx >= self.catalog.num_plurals:
                     self._invalid_pofile(
-                        u"",
+                        "",
                         self.offset,
                         "msg has more translations than num_plurals of catalog",
                     )
@@ -340,7 +342,9 @@ class PoFileParser:
             if line:
                 if line.startswith("#"):
                     if line[1:].startswith("~"):
-                        self._process_message_line(lineno, line[2:].lstrip(), obsolete=True)
+                        self._process_message_line(
+                            lineno, line[2:].lstrip(), obsolete=True
+                        )
                     else:
                         self._process_comment(line)
                 else:
@@ -354,8 +358,8 @@ class PoFileParser:
         if not self.counter and (
             self.flags or self.user_comments or self.auto_comments
         ):
-            self.messages.append(_NormalizedString(u'""'))
-            self.translations.append([0, _NormalizedString(u'""')])
+            self.messages.append(_NormalizedString('""'))
+            self.translations.append([0, _NormalizedString('""')])
             self._add_message()
             self._reset_message_state()
 
@@ -367,7 +371,7 @@ class PoFileParser:
         # `line` is guaranteed to be unicode so u"{}"-interpolating would always
         # succeed, but on Python < 2 if not in a TTY, `sys.stdout.encoding`
         # is `None`, unicode may not be printable so we `repr()` to ASCII.
-        print(u"WARNING: Problem on line {0}: {1}".format(lineno + 1, repr(line)))
+        print("WARNING: Problem on line {0}: {1}".format(lineno + 1, repr(line)))
 
 
 def read_po(
@@ -503,7 +507,7 @@ def normalize(string: str, prefix: str = "", width: int = 76) -> str:
                                 # separate line
                                 buf.append(chunks.pop())
                             break
-                    lines.append(u"".join(buf))
+                    lines.append("".join(buf))
             else:
                 lines.append(line)
     else:
@@ -516,7 +520,7 @@ def normalize(string: str, prefix: str = "", width: int = 76) -> str:
     if lines and not lines[-1]:
         del lines[-1]
         lines[-1] += "\n"
-    return u'""\n' + u"\n".join([(prefix + escape(line)) for line in lines])
+    return '""\n' + "\n".join([(prefix + escape(line)) for line in lines])
 
 
 def write_po(
@@ -636,14 +640,18 @@ def write_po(
                 lines = []
                 for line in comment_header.splitlines():
                     lines += wraptext(line, width=width, subsequent_indent="# ")
-                comment_header = u"\n".join(lines)
-            _write(comment_header + u"\n")
+                comment_header = "\n".join(lines)
+            _write(comment_header + "\n")
         else:
             # non-header message.
-            if original_if_available and not message.modified and message.original_lines:
+            if (
+                original_if_available
+                and not message.modified
+                and message.original_lines
+            ):
                 for line in message.original_lines:
                     _write(line)
-                continue # Using original message.
+                continue  # Using original message.
 
         for comment in message.user_comments:
             _write_comment(comment)
@@ -667,9 +675,9 @@ def write_po(
 
             for filename, lineno in locations:
                 if lineno and include_lineno:
-                    locs.append(u"%s:%d" % (filename.replace(os.sep, "/"), lineno))
+                    locs.append("%s:%d" % (filename.replace(os.sep, "/"), lineno))
                 else:
-                    locs.append(u"%s" % filename.replace(os.sep, "/"))
+                    locs.append("%s" % filename.replace(os.sep, "/"))
             _write_comment(" ".join(locs), prefix=":")
         if message.flags:
             _write("#%s\n" % ", ".join([""] + sorted(message.flags)))
@@ -686,7 +694,11 @@ def write_po(
 
     if not ignore_obsolete:
         for message in _sort_messages(catalog.obsolete.values(), sort_by=sort_by):
-            if original_if_available and not message.modified and message.original_lines:
+            if (
+                original_if_available
+                and not message.modified
+                and message.original_lines
+            ):
                 for line in message.original_lines:
                     _write(line)
                 continue  # Using original obsolete message
