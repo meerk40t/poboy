@@ -142,6 +142,12 @@ class TranslationPanel(wx.Panel):
         kwds["style"] = kwds.get("style", 0) | wx.WANTS_CHARS
         wx.Panel.__init__(self, *args, **kwds)
 
+        self.template = None
+        self.catalog = None
+        self.project = TranslationProject()
+
+        self.do_not_update = False
+
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.tree = wx.TreeCtrl(
@@ -204,15 +210,116 @@ class TranslationPanel(wx.Panel):
 
         self.show_project_panel()
 
-        self.template = None
-        self.catalog = None
-        self.project = TranslationProject()
-
-        self.do_not_update = False
         self.root = self.tree.AddRoot(_("Project"), data=(None, "project"))
 
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_tree_selection)
         self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_tree_menu)
+
+    def _build_menu_file(self):
+        wxglade_tmp_menu = wx.Menu()
+        root = self.Parent
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "New\tCtrl+N", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_new, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Open Project Directory\tCtrl+O", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_open, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save All Project Files\tCtrl+S", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_open, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation\tCtrl+T", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_save_translation, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template\tCtrl+M", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_save_template, item)
+        item = wxglade_tmp_menu.Append(
+            wx.ID_ANY, "Save Translation as\tCtrl+Shift+T", ""
+        )
+        root.Bind(wx.EVT_MENU, self.on_menu_save_as_translation, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template as\tCtrl+Shift+M", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_save_as_template, item)
+        return wxglade_tmp_menu
+
+    def on_menu_new(self, event):
+        self.clear_project()
+
+    def on_menu_open(self, event):
+        self.open_project_directory()
+
+    def on_menu_save_as_translation(self, event):
+        self.open_save_translation_dialog()
+
+    def on_menu_save_as_template(self, event):
+        self.open_save_template_dialog()
+
+    def on_menu_save_translation(self, event):
+        self.try_save_working_file_translation()
+
+    def on_menu_save_template(self, event):
+        self.try_save_working_file_template()
+
+    def _build_menu_actions(self):
+        root = self.Parent
+        wxglade_tmp_menu = wx.Menu()
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Compile MO", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_action_compile, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Extract Sources\tCtrl+G", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_action_extract, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Init New Translation\tCtrl+I", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_action_init, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Update Catalogs\tCtrl+U", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_action_update, item)
+        return wxglade_tmp_menu
+
+    def on_menu_action_update(self, event):
+        with wx.BusyInfo("Updating all translations with current template."):
+            self.action_update()
+
+    def on_menu_action_extract(self, event):
+        with wx.BusyInfo("Extracting sources to generate new template."):
+            self.action_extract()
+
+    def on_menu_action_init(self, event):
+        self.action_init()
+
+    def on_menu_action_compile(self, event):
+        self.action_compile()
+
+    def _build_menu_navigate(self):
+        root = self.Parent
+        wxglade_tmp_menu = wx.Menu()
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Previous Entry\tCtrl+Up", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_previous, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Next Entry\tCtrl+Down", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_next, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Copy Source\tAlt+Down", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_source, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "New Line\tShift+Enter", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_new_line, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Mark Fuzzy\tCtrl+F", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_fuzzy, item)
+        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Mark Not Fuzzy\tAlt+F", "")
+        root.Bind(wx.EVT_MENU, self.on_menu_unfuzzy, item)
+        return wxglade_tmp_menu
+
+    def on_menu_previous(self, event):
+        self.tree_move_to_previous()
+
+    def on_menu_next(self, event):
+        self.tree_move_to_next()
+
+    def on_menu_source(self, event):
+        self.translation_copy_original_to_translated()
+
+    def on_menu_new_line(self, event):
+        self.force_new_line()
+
+    def on_menu_fuzzy(self, event):
+        self.force_fuzzy()
+
+    def on_menu_unfuzzy(self, event):
+        self.force_unfuzzy()
+
+    def build_menu(self, menu_bar):
+        menu_bar.Append(self._build_menu_file(), "File")
+        menu_bar.Append(self._build_menu_actions(), "Actions")
+        menu_bar.Append(self._build_menu_navigate(), "Navigate")
 
     def open_project_directory(self):
         directory = None
@@ -225,6 +332,8 @@ class TranslationPanel(wx.Panel):
             directory = os.path.abspath(dlg.GetPath())
             self.project.directory = directory
             self.panel_project.update_pane()
+        else:
+            return
         dlg.Destroy()
         self.open_project()
         return directory
@@ -248,7 +357,7 @@ class TranslationPanel(wx.Panel):
         with wx.FileDialog(
             self,
             _("Save Template"),
-            wildcard="*.pot",
+            wildcard="*.pot|*.po",
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -1446,17 +1555,18 @@ class ProjectPanel(wx.Panel):
         )
         self.Bind(wx.EVT_TEXT, self.on_text_template_name, self.text_project_name)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_name, self.text_project_name)
+
         self.Bind(
             wx.EVT_COMBOBOX, self.on_combo_project_charset, self.combo_project_charset
         )
-        self.Bind(
-            wx.EVT_TEXT, self.on_text_template_structure, self.text_project_pot_file
-        )
+
+        self.Bind(wx.EVT_TEXT, self.on_text_template_file, self.text_project_pot_file)
         self.Bind(
             wx.EVT_TEXT_ENTER,
-            self.on_text_template_structure,
+            self.on_text_template_file,
             self.text_project_pot_file,
         )
+
         self.Bind(
             wx.EVT_TEXT, self.on_text_template_structure, self.text_template_structure
         )
@@ -1466,33 +1576,52 @@ class ProjectPanel(wx.Panel):
             self.text_template_structure,
         )
         # end wxGlade
+        self.text_project_name.SetValue(self.translation_panel.project.name)
+        self.combo_project_charset.SetSelection(self.translation_panel.project.charset)
+        self.text_project_pot_file.SetValue(
+            self.translation_panel.project.template_file
+        )
+        self.text_template_structure.SetValue(
+            self.translation_panel.project.catalog_file
+        )
 
     def on_project_open_directory(self, event):  # wxGlade: ProjectPanel.<event_handler>
         self.translation_panel.open_project_directory()
 
     def on_text_template_name(self, event):  # wxGlade: ProjectPanel.<event_handler>
-        print("Event handler 'on_text_template_name' not implemented!")
-        event.Skip()
+        self.translation_panel.project.name = self.text_project_name.GetValue()
 
     def on_combo_project_charset(self, event):  # wxGlade: ProjectPanel.<event_handler>
-        print("Event handler 'on_combo_template_charset' not implemented!")
-        event.Skip()
+        self.translation_panel.project.charset = self.combo_project_charset.GetValue()
+
+    def on_text_template_file(self, event):  # wxGlade: ProjectPanel.<event_handler>
+        self.translation_panel.project.template_file = (
+            self.text_project_pot_file.GetValue()
+        )
 
     def on_text_template_structure(
         self, event
     ):  # wxGlade: ProjectPanel.<event_handler>
-        print("Event handler 'on_text_template_structure' not implemented!")
-        event.Skip()
+        self.translation_panel.project.catalog_file = (
+            self.text_template_structure.GetValue()
+        )
 
     def update_pane(self):
         directory = self.translation_panel.project.directory
         if directory is None:
             directory = ""
         self.text_project_directory.SetValue(directory)
+
         tem_file = self.translation_panel.project.template_file
         self.text_project_pot_file.SetValue(tem_file)
+
         cat_file = self.translation_panel.project.catalog_file
-        self.text_project_pot_file.SetValue(cat_file)
+        self.text_template_structure.SetValue(cat_file)
+
+        name = self.translation_panel.project.name
+        self.text_project_name.SetValue(self.translation_panel.project.name)
+
+        self.combo_project_charset.SetSelection(self.translation_panel.project.charset)
 
 
 class InfoPanel(wx.Panel):
@@ -1567,7 +1696,10 @@ class PoboyWindow(wx.Frame):
 
         self.panel = TranslationPanel(self, wx.ID_ANY)
 
-        self.__create_menubar()
+        self.main_menubar = wx.MenuBar()
+        self.panel.build_menu(self.main_menubar)
+        self.add_language_menu()
+        self.SetMenuBar(self.main_menubar)
 
         _icon = wx.NullIcon
         _icon.CopyFromBitmap(icons8_translation_50.GetBitmap())
@@ -1575,56 +1707,6 @@ class PoboyWindow(wx.Frame):
         self.SetTitle(_("POboy"))
         self.Layout()
         # end wxGlade
-
-    def __create_menubar(self):
-        self.main_menubar = wx.MenuBar()
-        wxglade_tmp_menu = wx.Menu()
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "New\tCtrl+N", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_new, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Open Project Directory\tCtrl+O", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_open, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save All Project Files\tCtrl+S", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_open, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation\tCtrl+T", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_save_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template\tCtrl+M", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_save_template, item)
-        item = wxglade_tmp_menu.Append(
-            wx.ID_ANY, "Save Translation as\tCtrl+Shift+T", ""
-        )
-        self.Bind(wx.EVT_MENU, self.on_menu_save_as_translation, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template as\tCtrl+Shift+M", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_save_as_template, item)
-        self.main_menubar.Append(wxglade_tmp_menu, "File")
-
-        wxglade_tmp_menu = wx.Menu()
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Compile MO", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_action_compile, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Extract Sources\tCtrl+G", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_action_extract, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Init New Translation\tCtrl+I", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_action_init, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Update Catalogs\tCtrl+U", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_action_update, item)
-        self.main_menubar.Append(wxglade_tmp_menu, "Actions")
-
-        wxglade_tmp_menu = wx.Menu()
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Previous Entry\tCtrl+Up", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_previous, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Next Entry\tCtrl+Down", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_next, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Copy Source\tAlt+Down", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_source, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "New Line\tShift+Enter", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_new_line, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Mark Fuzzy\tCtrl+F", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_fuzzy, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Mark Not Fuzzy\tAlt+F", "")
-        self.Bind(wx.EVT_MENU, self.on_menu_unfuzzy, item)
-        self.main_menubar.Append(wxglade_tmp_menu, "Navigate")
-
-        self.add_language_menu()
-        self.SetMenuBar(self.main_menubar)
 
     def add_language_menu(self):
         tl = wx.FileTranslationsLoader()
@@ -1646,56 +1728,6 @@ class PoboyWindow(wx.Frame):
                 m.Enable(False)
             i += 1
         self.main_menubar.Append(wxglade_tmp_menu, _("Languages"))
-
-    def on_menu_new(self, event):
-        self.panel.clear_project()
-
-    def on_menu_open(self, event):
-        self.panel.open_project_directory()
-
-    def on_menu_save_as_translation(self, event):
-        self.panel.open_save_translation_dialog()
-
-    def on_menu_save_as_template(self, event):
-        self.panel.open_save_template_dialog()
-
-    def on_menu_save_translation(self, event):
-        self.panel.try_save_working_file_translation()
-
-    def on_menu_save_template(self, event):
-        self.panel.try_save_working_file_template()
-
-    def on_menu_action_update(self, event):
-        with wx.BusyInfo("Updating all translations with current template."):
-            self.panel.action_update()
-
-    def on_menu_action_extract(self, event):
-        with wx.BusyInfo("Extracting sources to generate new template."):
-            self.panel.action_extract()
-
-    def on_menu_action_init(self, event):
-        self.panel.action_init()
-
-    def on_menu_action_compile(self, event):
-        self.panel.action_compile()
-
-    def on_menu_previous(self, event):
-        self.panel.tree_move_to_previous()
-
-    def on_menu_next(self, event):
-        self.panel.tree_move_to_next()
-
-    def on_menu_source(self, event):
-        self.panel.translation_copy_original_to_translated()
-
-    def on_menu_new_line(self, event):
-        self.panel.force_new_line()
-
-    def on_menu_fuzzy(self, event):
-        self.panel.force_fuzzy()
-
-    def on_menu_unfuzzy(self, event):
-        self.panel.force_unfuzzy()
 
     def load_language(self, lang):
         try:

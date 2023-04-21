@@ -21,15 +21,19 @@ class TranslationProject:
 
     def __init__(self):
         self.catalogs = OrderedDict()
+        self.name = ""
+        self.charset = 0
         self.directory = None
         self.template_file = "/locale/messages.pot"
         self.catalog_file = "/locale/{locale}/LC_MESSAGES/{domain}.po"
 
     def clear(self):
+        self.catalogs.clear()
+        self.name = ""
+        self.charset = 0
         self.directory = None
         self.template_file = "/locale/messages.pot"
         self.catalog_file = "/locale/{locale}/LC_MESSAGES/{domain}.po"
-        self.catalogs.clear()
 
     def init(self, locale: str, domain: str = "messages", language: str = None):
         template = self.catalogs.get(TEMPLATE)
