@@ -362,6 +362,22 @@ class Catalog(object):
             c[message.id] = message.clone()
         return c
 
+    def properties_of(self, template):
+        self.locale = template.locale
+        self.domain = template.domain
+        self._header_comment = template._header_comment
+        self.project = template.project
+        self.version = template.version
+        self.copyright_holder = template.copyright_holder
+        self.msgid_bugs_address = template.msgid_bugs_address
+        self.creation_date = template.creation_date
+        self.revision_date = template.revision_date
+        self.last_translator = template.last_translator
+        self.language_team = template.language_team
+        self.charset = template.charset
+        self.fuzzy = template.fuzzy
+        self.filename = template.filename
+
     def _set_locale(self, locale):
         if locale is None:
             self._locale_identifier = None

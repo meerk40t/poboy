@@ -21,15 +21,19 @@ class TranslationProject:
 
     def __init__(self):
         self.catalogs = OrderedDict()
+        self.name = ""
+        self.charset = 0
         self.directory = None
         self.template_file = "/locale/messages.pot"
         self.catalog_file = "/locale/{locale}/LC_MESSAGES/{domain}.po"
 
     def clear(self):
+        self.catalogs.clear()
+        self.name = ""
+        self.charset = 0
         self.directory = None
         self.template_file = "/locale/messages.pot"
         self.catalog_file = "/locale/{locale}/LC_MESSAGES/{domain}.po"
-        self.catalogs.clear()
 
     def init(self, locale: str, domain: str = "messages", language: str = None):
         template = self.catalogs.get(TEMPLATE)
@@ -61,7 +65,7 @@ class TranslationProject:
             save(catalog)
 
     def save(self, catalog):
-        save(catalog, catalog.filename)
+        save(catalog)
 
     def save_locale(self, locale: str):
         catalog = self.catalogs[locale]
@@ -93,8 +97,8 @@ class TranslationProject:
         if template is None:
             return
 
-        for catalog in self.catalogs.values():
-            if catalog.locale is None:
+        for key, catalog in self.catalogs.items():
+            if key == TEMPLATE:
                 continue  # Cannot update the template
             catalog.update(
                 template,
@@ -104,11 +108,12 @@ class TranslationProject:
             )
 
     def babel_extract(self):
-        catalog = generate_template_from_python_package(self.directory)
+        new_template = generate_template_from_python_package(self.directory)
         template = self.catalogs.get(TEMPLATE)
         if template is not None:
-            catalog.difference(template)
-        self.catalogs[TEMPLATE] = catalog
+            new_template.difference(template)
+            new_template.properties_of(template)
+        self.catalogs[TEMPLATE] = new_template
 
     def calculate_updates(self):
         template = self.catalogs.get(TEMPLATE)

@@ -12,7 +12,7 @@ PRINTF_RE = re.compile(
 )
 
 
-def save(catalog, filename=None, write_mo=True):
+def save(catalog, write_mo=True, filename=None):
     if filename is None:
         filename = catalog.filename
     if filename is None:
@@ -83,7 +83,7 @@ def save_as_patch(tree, catalog, panel):
     newcatalog = catalog.clone()
     newcatalog._messages.clear()
     newcatalog._messages.update(catalog.new)
-    save(newcatalog, "patch.po", write_mo=False)
+    save(newcatalog, filename="patch.po", write_mo=False)
 
 
 def move_new_to_general(tree, catalog, panel):
