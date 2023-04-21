@@ -22,13 +22,13 @@ PRINTF_RE = re.compile(
 _ = wx.GetTranslation
 
 supported_languages = (
-    ("en", u"English", wx.LANGUAGE_ENGLISH),
-    ("it", u"italiano", wx.LANGUAGE_ITALIAN),
-    ("fr", u"français", wx.LANGUAGE_FRENCH),
-    ("de", u"Deutsch", wx.LANGUAGE_GERMAN),
-    ("es", u"español", wx.LANGUAGE_SPANISH),
-    ("zh", u"中文", wx.LANGUAGE_CHINESE),
-    ("hu", u"Magyar", wx.LANGUAGE_HUNGARIAN),
+    ("en", "English", wx.LANGUAGE_ENGLISH),
+    ("it", "italiano", wx.LANGUAGE_ITALIAN),
+    ("fr", "français", wx.LANGUAGE_FRENCH),
+    ("de", "Deutsch", wx.LANGUAGE_GERMAN),
+    ("es", "español", wx.LANGUAGE_SPANISH),
+    ("zh", "中文", wx.LANGUAGE_CHINESE),
+    ("hu", "Magyar", wx.LANGUAGE_HUNGARIAN),
 )
 
 
@@ -243,7 +243,8 @@ def load(filename):
 def generate_template_from_python_package(sources_directory, strip_comment_tags=False):
     template = Catalog()
     for filename, lineno, message, comments, context in extract.extract_from_dir(
-        sources_directory, strip_comment_tags=strip_comment_tags,
+        sources_directory,
+        strip_comment_tags=strip_comment_tags,
     ):
         template.add(
             message,
@@ -274,7 +275,6 @@ def obsolete_orphans(tree, catalog, panel):
             )
 
 
-
 def delete_orphans(tree, catalog, panel):
     for m in list(catalog.orphans):
         message = catalog[m]
@@ -303,9 +303,7 @@ def move_new_to_general(tree, catalog, panel):
             tree.Delete(item)
         tree.Delete(message.item)
 
-        message.item = tree.AppendItem(
-            catalog.workflow_all, m, data=(catalog, message)
-        )
+        message.item = tree.AppendItem(catalog.workflow_all, m, data=(catalog, message))
         panel.message_revalidate(catalog, message)
 
 
@@ -333,12 +331,13 @@ def fuzzy_match(tree, catalog, panel):
             new_message.modified = True
             panel.message_revalidate(catalog, new_message)
 
+
 INTERFACE = {
     "new": {
-        "description":"""New messages are those items found in the template but not found Portable Object file.
+        "description": """New messages are those items found in the template but not found Portable Object file.
 
 Messages within new are not part of the general population of messages.""",
-        "commands":[
+        "commands": [
             {
                 "name": _("Save as patch.po"),
                 "command": save_as_patch,
@@ -350,97 +349,92 @@ Messages within new are not part of the general population of messages.""",
             {
                 "name": _("Fuzzy Match"),
                 "command": fuzzy_match,
-            }
-        ]
+            },
+        ],
     },
     "added": {
-        "description":"""Added messages are those items which are newly found for this template.""",
-        "commands":[]
+        "description": """Added messages are those items which are newly found for this template.""",
+        "commands": [],
     },
     "removed": {
-        "description":"""Removed messages are those messages which were included, but no longer are included in this template.""",
-        "commands":[]
+        "description": """Removed messages are those messages which were included, but no longer are included in this template.""",
+        "commands": [],
     },
     "orphan": {
-        "description":"""Orphan messages are those items found in the Portable Object file but not found in the template.
+        "description": """Orphan messages are those items found in the Portable Object file but not found in the template.
 
 Messages in orphan are within the general population of messages.""",
-        "commands":[
-            {
-                "name":_("Obsolete Orphans"),
-                "command":obsolete_orphans
-             },
-            {
-                "name": _("Delete Orphans"),
-                "command":delete_orphans
-            }
-        ]
+        "commands": [
+            {"name": _("Obsolete Orphans"), "command": obsolete_orphans},
+            {"name": _("Delete Orphans"), "command": delete_orphans},
+        ],
     },
     "obsolete": {
-        "description":"""Obsolete messages are these items commented out in the Portable Object file. This could be because they were moved disabled by a previous update or because they were merely placed in the disabled group.
+        "description": """Obsolete messages are these items commented out in the Portable Object file. This could be because they were moved disabled by a previous update or because they were merely placed in the disabled group.
 
 Messages in obsolete are not part of the general population of messages. However they are saved with the Portable Object file.""",
-        "commands":[]
+        "commands": [],
     },
     "issues": {
         "description": """Messages which have issues may be fine. However, their usage is highlighted in order to help avoid potential inconsistencies. They may be minor problems or the issues themselves may be defective and the current translation is correct.""",
-        "commands": []
+        "commands": [],
     },
     "issue-equal": {
         "description": """Messages with this issue are effectively worthless. The default operation of a translation is to do no translation. However this message explicitly does no work. This takes up additional  time and resources to perform no action over the default.        """,
-        "commands": []
+        "commands": [],
     },
     "issue-capitals": {
         "description": """Messages with this issue have different initial capitalizations. This may be because an error was made or simply be flagged in error.
 
 For example, translating "percent" from English to German may be translated "Prozent" and be flagged for inconsistent capitalization. However, "percent" is a noun and all nouns are capitalized in German.""",
-        "commands": []
+        "commands": [],
     },
     "issue-punctuation": {
         "description": """Messages with this issue have different terminal punctuation. The translated item has a different amount final punctuation mark.""",
-        "commands": []
+        "commands": [],
     },
     "issue-ending-whitespace": {
         "description": """This issue occurs when the amount of white space differs between the translated string and original string.""",
-        "commands": []
+        "commands": [],
     },
     "issue-double-space": {
         "description": """This issue occurs when a double space is used within a string. This may be for effect or simply in error.""",
-        "commands": []
+        "commands": [],
     },
     "errors": {
         "description": """Messages which are in error should be fixed. Errors are functional defects in the messages that would prevent these messages from working within the program. Attempting to use them can produce crashes in the program and these should be carefully and effectively eliminated.""",
-        "commands": []
+        "commands": [],
     },
     "error-printf": {
         "description": """Messages with this error have different or inconsistent printf commands too many or too few %s, %f, %d commands or these commands in the wrong order.
 
 Printf commands intend to have values inserted for the printf tokens. If these are not present or if they occur in the wrong order this may cause the program to crash.""",
-        "commands": []
+        "commands": [],
     },
     "error_catalog-locale": {
         "description": """Locale and the base directory are not equal.""",
-        "commands": []
+        "commands": [],
     },
     "fuzzy": {
         "description": """Fuzzy Messages are translated but suspect. These could be close matches during an update process or automatically translated by a machine. The fuzziness of the translation is an indication of the trust we should not have in the utility of this translation.""",
-        "commands": []
+        "commands": [],
     },
     "translated": {
         "description": """Translated messages are those messages for which any value appears in the message string.""",
-        "commands": []
+        "commands": [],
     },
     "untranslated": {
         "description": """Untranslated messages are those messages which have no value in the message string.""",
-        "commands": []
+        "commands": [],
     },
     "all": {
         "description": """List of every message within the current catalog.
 
 Note: All includes only those messages which are actively in the catalog. This will not include, obsolete, or new messages but shall include orphans.""",
-        "commands": []
-    }
+        "commands": [],
+    },
 }
+
 
 class TranslationProject:
     """
@@ -448,6 +442,7 @@ class TranslationProject:
     a subdirectory of the project directory. And it stores a list of all the catalogs within this project including
     the template.
     """
+
     def __init__(self):
         self.catalogs = OrderedDict()
         self.directory = None
@@ -460,20 +455,22 @@ class TranslationProject:
         self.catalog_file = "/locale/{locale}/LC_MESSAGES/{domain}.po"
         self.catalogs.clear()
 
-    def init(self, locale: str, domain: str="messages", language: str=None):
+    def init(self, locale: str, domain: str = "messages", language: str = None):
         template = self.catalogs.get(TEMPLATE)
         translate = template.clone()
         translate._locale = locale
         translate.revision_date = datetime.now()
         translate.fuzzy = False
-        translate.filename = self.catalog_file.format(locale=str(locale), domain=str(domain), language=str(language))
+        translate.filename = self.catalog_file.format(
+            locale=str(locale), domain=str(domain), language=str(language)
+        )
         self.catalogs[locale] = translate
         self.save(translate)
 
     def compile_all(self):
         for c in self.catalogs:
             if c == TEMPLATE:
-                continue # We do not compile template objects.
+                continue  # We do not compile template objects.
             catalog = self.catalogs[c]
             filename = catalog.filename
             if filename.endswith(".po"):
@@ -505,7 +502,7 @@ class TranslationProject:
         for path, dirs, files in os.walk(locale_directory):
             for file in files:
                 if file.endswith(".po"):
-                    basedir = os.path.split(os.path.relpath(path,locale_directory))[0]
+                    basedir = os.path.split(os.path.relpath(path, locale_directory))[0]
                     self.load(os.path.join(path, file), locale=basedir)
                 if file.endswith(".pot"):
                     self.load(os.path.join(path, file), locale=TEMPLATE)
@@ -522,7 +519,7 @@ class TranslationProject:
 
         for catalog in self.catalogs.values():
             if catalog.locale is None:
-                continue # Cannot update the template
+                continue  # Cannot update the template
             catalog.update(
                 template,
                 no_fuzzy_matching=no_fuzzy_matching,
@@ -598,10 +595,20 @@ class TranslationPanel(wx.Panel):
 
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.tree = wx.TreeCtrl(self, wx.ID_ANY, style=wx.TR_HAS_BUTTONS | wx.TR_HAS_VARIABLE_ROW_HEIGHT | wx.TR_NO_LINES | wx.TR_SINGLE | wx.TR_TWIST_BUTTONS)
+        self.tree = wx.TreeCtrl(
+            self,
+            wx.ID_ANY,
+            style=wx.TR_HAS_BUTTONS
+            | wx.TR_HAS_VARIABLE_ROW_HEIGHT
+            | wx.TR_NO_LINES
+            | wx.TR_SINGLE
+            | wx.TR_TWIST_BUTTONS,
+        )
         main_sizer.Add(self.tree, 1, wx.EXPAND, 0)
 
-        self.panel_message_single = SingleMessagePanel(self, wx.ID_ANY, translation_panel=self)
+        self.panel_message_single = SingleMessagePanel(
+            self, wx.ID_ANY, translation_panel=self
+        )
         main_sizer.Add(self.panel_message_single, 3, wx.EXPAND, 0)
 
         sizer_catalog_statistics = wx.BoxSizer(wx.VERTICAL)
@@ -613,7 +620,9 @@ class TranslationPanel(wx.Panel):
         self.panel_statistics = StatisticsPanel(self, wx.ID_ANY, translation_panel=self)
         sizer_catalog_statistics.Add(self.panel_statistics, 3, wx.EXPAND, 0)
 
-        self.panel_file_information = FileInformationPanel(self, wx.ID_ANY, translation_panel=self)
+        self.panel_file_information = FileInformationPanel(
+            self, wx.ID_ANY, translation_panel=self
+        )
         sizer_catalog_statistics.Add(self.panel_file_information, 3, wx.EXPAND, 0)
 
         sizer_template_statistics = wx.BoxSizer(wx.VERTICAL)
@@ -622,8 +631,12 @@ class TranslationPanel(wx.Panel):
         self.panel_template = TemplatePanel(self, wx.ID_ANY, translation_panel=self)
         sizer_template_statistics.Add(self.panel_template, 3, wx.EXPAND, 0)
 
-        self.panel_template_file_information = FileInformationPanel(self, wx.ID_ANY, translation_panel=self)
-        sizer_template_statistics.Add(self.panel_template_file_information, 3, wx.EXPAND, 0)
+        self.panel_template_file_information = FileInformationPanel(
+            self, wx.ID_ANY, translation_panel=self
+        )
+        sizer_template_statistics.Add(
+            self.panel_template_file_information, 3, wx.EXPAND, 0
+        )
 
         self.panel_project = ProjectPanel(self, wx.ID_ANY, translation_panel=self)
         main_sizer.Add(self.panel_project, 3, wx.EXPAND, 0)
@@ -741,7 +754,7 @@ class TranslationPanel(wx.Panel):
             for message in catalog:
                 if message.id == message.string:
                     message.string = None
-                    self.message_revalidate(catalog,message)
+                    self.message_revalidate(catalog, message)
 
     def move_orphans_to_obsolete(self):
         for catalog in self.project.catalogs.values():
@@ -947,7 +960,12 @@ class TranslationPanel(wx.Panel):
                 catalog.workflow_new, name, data=(catalog, message)
             )
             if message.item and message.item.IsOk():
-                tree.SetItemTextColour(message.item, self.color_template_translated if message.string else self.color_template)
+                tree.SetItemTextColour(
+                    message.item,
+                    self.color_template_translated
+                    if message.string
+                    else self.color_template,
+                )
 
     def _tree_rebuild(self):
         tree = self.tree
@@ -1092,7 +1110,7 @@ class TranslationPanel(wx.Panel):
         p0 = list(PRINTF_RE.findall(msgid))
         p1 = list(PRINTF_RE.findall(msgstr))
         if len(p0) == len(p1):
-            for a, b in zip(p0,p1):
+            for a, b in zip(p0, p1):
                 if a != b:
                     classes.append(catalog.error_printf)
                     break
@@ -1256,7 +1274,15 @@ class SingleMessagePanel(wx.Panel):
             self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
         )
         self.text_comment.SetFont(
-            wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+            wx.Font(
+                14,
+                wx.FONTFAMILY_DEFAULT,
+                wx.FONTSTYLE_NORMAL,
+                wx.FONTWEIGHT_NORMAL,
+                0,
+                "Segoe UI",
+            )
+        )
         sizer_comment.Add(self.text_comment, 3, wx.EXPAND, 0)
 
         sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
@@ -1279,14 +1305,30 @@ class SingleMessagePanel(wx.Panel):
             self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
         )
         self.text_original_text.SetFont(
-            wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+            wx.Font(
+                14,
+                wx.FONTFAMILY_DEFAULT,
+                wx.FONTSTYLE_NORMAL,
+                wx.FONTWEIGHT_NORMAL,
+                0,
+                "Segoe UI",
+            )
+        )
         sizer_comment.Add(self.text_original_text, 6, wx.EXPAND, 0)
 
         self.text_translated_text = wx.TextCtrl(
             self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER
         )
         self.text_translated_text.SetFont(
-            wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+            wx.Font(
+                14,
+                wx.FONTFAMILY_DEFAULT,
+                wx.FONTSTYLE_NORMAL,
+                wx.FONTWEIGHT_NORMAL,
+                0,
+                "Segoe UI",
+            )
+        )
         sizer_comment.Add(self.text_translated_text, 6, wx.EXPAND, 0)
 
         self.SetSizer(sizer_comment)
@@ -1521,33 +1563,45 @@ class StatisticsPanel(wx.Panel):
         wx.Panel.__init__(self, *args, **kwds)
         self.translation_panel = translation_panel
 
-        sizer_statistics = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Statistics"), wx.VERTICAL)
+        sizer_statistics = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Statistics"), wx.VERTICAL
+        )
 
-        sizer_messages_statistics = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Messages Translated"), wx.VERTICAL)
+        sizer_messages_statistics = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Messages Translated"), wx.VERTICAL
+        )
         sizer_statistics.Add(sizer_messages_statistics, 0, wx.EXPAND, 0)
 
         sizer_13 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_messages_statistics.Add(sizer_13, 1, wx.EXPAND, 0)
 
-        self.text_messages_translated = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        self.text_messages_translated = wx.TextCtrl(
+            self, wx.ID_ANY, "", style=wx.TE_READONLY
+        )
         sizer_13.Add(self.text_messages_translated, 0, 0, 0)
 
         label_2 = wx.StaticText(self, wx.ID_ANY, "/")
         sizer_13.Add(label_2, 0, 0, 0)
 
-        self.text_messages_total = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        self.text_messages_total = wx.TextCtrl(
+            self, wx.ID_ANY, "", style=wx.TE_READONLY
+        )
         sizer_13.Add(self.text_messages_total, 0, 0, 0)
 
         self.gauge_messages = wx.Gauge(self, wx.ID_ANY, 10)
         sizer_messages_statistics.Add(self.gauge_messages, 0, wx.EXPAND, 0)
 
-        sizer_fuzzy_statistics = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Fuzzy Translated"), wx.VERTICAL)
+        sizer_fuzzy_statistics = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Fuzzy Translated"), wx.VERTICAL
+        )
         sizer_statistics.Add(sizer_fuzzy_statistics, 0, wx.EXPAND, 0)
 
         sizer_20 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_fuzzy_statistics.Add(sizer_20, 1, wx.EXPAND, 0)
 
-        self.text_fuzzy_translated = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        self.text_fuzzy_translated = wx.TextCtrl(
+            self, wx.ID_ANY, "", style=wx.TE_READONLY
+        )
         sizer_20.Add(self.text_fuzzy_translated, 0, 0, 0)
 
         label_7 = wx.StaticText(self, wx.ID_ANY, "/")
@@ -1559,13 +1613,17 @@ class StatisticsPanel(wx.Panel):
         self.gauge_fuzzy = wx.Gauge(self, wx.ID_ANY, 10)
         sizer_fuzzy_statistics.Add(self.gauge_fuzzy, 0, wx.EXPAND, 0)
 
-        sizer_words_statistics = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Words Translated"), wx.VERTICAL)
+        sizer_words_statistics = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Words Translated"), wx.VERTICAL
+        )
         sizer_statistics.Add(sizer_words_statistics, 0, wx.EXPAND, 0)
 
         sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_words_statistics.Add(sizer_12, 1, wx.EXPAND, 0)
 
-        self.text_words_translated = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        self.text_words_translated = wx.TextCtrl(
+            self, wx.ID_ANY, "", style=wx.TE_READONLY
+        )
         sizer_12.Add(self.text_words_translated, 0, 0, 0)
 
         label_1 = wx.StaticText(self, wx.ID_ANY, "/")
@@ -1611,11 +1669,7 @@ class StatisticsPanel(wx.Panel):
 
         total = len(self.catalog._messages)
         self.text_fuzzy_total.SetLabelText(str(total))
-        fuzzy = [
-            m
-            for m in self.catalog._messages.values()
-            if m.fuzzy
-        ]
+        fuzzy = [m for m in self.catalog._messages.values() if m.fuzzy]
         fuzz = len(fuzzy)
         self.text_fuzzy_translated.SetLabelText(str(fuzz))
         self.gauge_fuzzy.SetRange(total)
@@ -1629,21 +1683,31 @@ class FileInformationPanel(wx.Panel):
         wx.Panel.__init__(self, *args, **kwds)
         self.translation_panel = translation_panel
 
-        sizer_file_info = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "File Information"), wx.VERTICAL)
+        sizer_file_info = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "File Information"), wx.VERTICAL
+        )
 
-        sizer_14 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "File Type:"), wx.VERTICAL)
+        sizer_14 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "File Type:"), wx.VERTICAL
+        )
         sizer_file_info.Add(sizer_14, 0, wx.EXPAND, 0)
 
-        self.text_file_type = wx.TextCtrl(self, wx.ID_ANY, "Gettext Portable Object File", style=wx.TE_READONLY)
+        self.text_file_type = wx.TextCtrl(
+            self, wx.ID_ANY, "Gettext Portable Object File", style=wx.TE_READONLY
+        )
         sizer_14.Add(self.text_file_type, 0, wx.EXPAND, 0)
 
-        sizer_15 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "File Size:"), wx.VERTICAL)
+        sizer_15 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "File Size:"), wx.VERTICAL
+        )
         sizer_file_info.Add(sizer_15, 0, wx.EXPAND, 0)
 
         self.text_file_size = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
         sizer_15.Add(self.text_file_size, 0, wx.EXPAND, 0)
 
-        sizer_16 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Location:"), wx.VERTICAL)
+        sizer_16 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Location:"), wx.VERTICAL
+        )
         sizer_file_info.Add(sizer_16, 0, wx.EXPAND, 0)
 
         self.text_file_location = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
@@ -1676,24 +1740,34 @@ class TemplatePanel(wx.Panel):
         wx.Panel.__init__(self, *args, **kwds)
         self.translation_panel = translation_panel
 
-        sizer_11 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Template"), wx.VERTICAL)
+        sizer_11 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Template"), wx.VERTICAL
+        )
 
-        sizer_17 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project Name"), wx.VERTICAL)
+        sizer_17 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Project Name"), wx.VERTICAL
+        )
         sizer_11.Add(sizer_17, 0, wx.EXPAND, 0)
 
         self.text_template_project_name = wx.TextCtrl(self, wx.ID_ANY, "")
         sizer_17.Add(self.text_template_project_name, 0, wx.EXPAND, 0)
 
-        sizer_18 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Team"), wx.VERTICAL)
+        sizer_18 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Default Team"), wx.VERTICAL
+        )
         sizer_11.Add(sizer_18, 0, wx.EXPAND, 0)
 
         self.text_project_language_team = wx.TextCtrl(self, wx.ID_ANY, "")
         sizer_18.Add(self.text_project_language_team, 0, wx.EXPAND, 0)
 
-        sizer_21 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Charset"), wx.VERTICAL)
+        sizer_21 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Charset"), wx.VERTICAL
+        )
         sizer_11.Add(sizer_21, 0, wx.EXPAND, 0)
 
-        self.combo_template_charset = wx.ComboBox(self, wx.ID_ANY, choices=["UTF-8", ""], style=wx.CB_DROPDOWN)
+        self.combo_template_charset = wx.ComboBox(
+            self, wx.ID_ANY, choices=["UTF-8", ""], style=wx.CB_DROPDOWN
+        )
         self.combo_template_charset.SetSelection(0)
         sizer_21.Add(self.combo_template_charset, 0, wx.EXPAND, 0)
 
@@ -1701,11 +1775,25 @@ class TemplatePanel(wx.Panel):
 
         self.Layout()
 
-        self.Bind(wx.EVT_TEXT, self.on_text_template_name, self.text_template_project_name)
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_name, self.text_template_project_name)
-        self.Bind(wx.EVT_TEXT, self.on_text_template_team, self.text_project_language_team)
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_team, self.text_project_language_team)
-        self.Bind(wx.EVT_COMBOBOX, self.on_combo_template_charset, self.combo_template_charset)
+        self.Bind(
+            wx.EVT_TEXT, self.on_text_template_name, self.text_template_project_name
+        )
+        self.Bind(
+            wx.EVT_TEXT_ENTER,
+            self.on_text_template_name,
+            self.text_template_project_name,
+        )
+        self.Bind(
+            wx.EVT_TEXT, self.on_text_template_team, self.text_project_language_team
+        )
+        self.Bind(
+            wx.EVT_TEXT_ENTER,
+            self.on_text_template_team,
+            self.text_project_language_team,
+        )
+        self.Bind(
+            wx.EVT_COMBOBOX, self.on_combo_template_charset, self.combo_template_charset
+        )
         # end wxGlade
         self.template = None
 
@@ -1717,7 +1805,9 @@ class TemplatePanel(wx.Panel):
         print("Event handler 'on_text_template_team' not implemented!")
         event.Skip()
 
-    def on_combo_template_charset(self, event):  # wxGlade: TemplatePanel.<event_handler>
+    def on_combo_template_charset(
+        self, event
+    ):  # wxGlade: TemplatePanel.<event_handler>
         print("Event handler 'on_combo_template_charset' not implemented!")
         event.Skip()
 
@@ -1732,37 +1822,53 @@ class ProjectPanel(wx.Panel):
         wx.Panel.__init__(self, *args, **kwds)
         self.translation_panel = translation_panel
 
-        sizer_22 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project"), wx.VERTICAL)
+        sizer_22 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Project"), wx.VERTICAL
+        )
 
-        sizer_24 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project Directory:"), wx.HORIZONTAL)
+        sizer_24 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Project Directory:"), wx.HORIZONTAL
+        )
         sizer_22.Add(sizer_24, 0, wx.EXPAND, 0)
 
-        self.text_project_directory = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_READONLY)
+        self.text_project_directory = wx.TextCtrl(
+            self, wx.ID_ANY, "", style=wx.TE_READONLY
+        )
         sizer_24.Add(self.text_project_directory, 1, wx.EXPAND, 0)
 
         self.button_open_project_directory = wx.Button(self, wx.ID_ANY, "Open")
         sizer_24.Add(self.button_open_project_directory, 0, 0, 0)
 
-        sizer_23 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Project Name:"), wx.VERTICAL)
+        sizer_23 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Project Name:"), wx.VERTICAL
+        )
         sizer_22.Add(sizer_23, 0, wx.EXPAND, 0)
 
         self.text_project_name = wx.TextCtrl(self, wx.ID_ANY, "")
         sizer_23.Add(self.text_project_name, 0, wx.EXPAND, 0)
 
-        sizer_25 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Charset:"), wx.VERTICAL)
+        sizer_25 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Charset:"), wx.VERTICAL
+        )
         sizer_22.Add(sizer_25, 0, wx.EXPAND, 0)
 
-        self.combo_project_charset = wx.ComboBox(self, wx.ID_ANY, choices=["UTF-8", ""], style=wx.CB_DROPDOWN)
+        self.combo_project_charset = wx.ComboBox(
+            self, wx.ID_ANY, choices=["UTF-8", ""], style=wx.CB_DROPDOWN
+        )
         self.combo_project_charset.SetSelection(0)
         sizer_25.Add(self.combo_project_charset, 0, wx.EXPAND, 0)
 
-        sizer_27 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Template Location:"), wx.VERTICAL)
+        sizer_27 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Default Template Location:"), wx.VERTICAL
+        )
         sizer_22.Add(sizer_27, 0, wx.EXPAND, 0)
 
         self.text_project_pot_file = wx.TextCtrl(self, wx.ID_ANY, "")
         sizer_27.Add(self.text_project_pot_file, 0, wx.EXPAND, 0)
 
-        sizer_19 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Default Structure:"), wx.VERTICAL)
+        sizer_19 = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Default Structure:"), wx.VERTICAL
+        )
         sizer_22.Add(sizer_19, 1, wx.EXPAND, 0)
 
         self.text_template_structure = wx.TextCtrl(self, wx.ID_ANY, "")
@@ -1784,14 +1890,32 @@ class ProjectPanel(wx.Panel):
 
         self.Layout()
 
-        self.Bind(wx.EVT_BUTTON, self.on_project_open_directory, self.button_open_project_directory)
+        self.Bind(
+            wx.EVT_BUTTON,
+            self.on_project_open_directory,
+            self.button_open_project_directory,
+        )
         self.Bind(wx.EVT_TEXT, self.on_text_template_name, self.text_project_name)
         self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_name, self.text_project_name)
-        self.Bind(wx.EVT_COMBOBOX, self.on_combo_project_charset, self.combo_project_charset)
-        self.Bind(wx.EVT_TEXT, self.on_text_template_structure, self.text_project_pot_file)
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_structure, self.text_project_pot_file)
-        self.Bind(wx.EVT_TEXT, self.on_text_template_structure, self.text_template_structure)
-        self.Bind(wx.EVT_TEXT_ENTER, self.on_text_template_structure, self.text_template_structure)
+        self.Bind(
+            wx.EVT_COMBOBOX, self.on_combo_project_charset, self.combo_project_charset
+        )
+        self.Bind(
+            wx.EVT_TEXT, self.on_text_template_structure, self.text_project_pot_file
+        )
+        self.Bind(
+            wx.EVT_TEXT_ENTER,
+            self.on_text_template_structure,
+            self.text_project_pot_file,
+        )
+        self.Bind(
+            wx.EVT_TEXT, self.on_text_template_structure, self.text_template_structure
+        )
+        self.Bind(
+            wx.EVT_TEXT_ENTER,
+            self.on_text_template_structure,
+            self.text_template_structure,
+        )
         # end wxGlade
 
     def on_project_open_directory(self, event):  # wxGlade: ProjectPanel.<event_handler>
@@ -1805,7 +1929,9 @@ class ProjectPanel(wx.Panel):
         print("Event handler 'on_combo_template_charset' not implemented!")
         event.Skip()
 
-    def on_text_template_structure(self, event):  # wxGlade: ProjectPanel.<event_handler>
+    def on_text_template_structure(
+        self, event
+    ):  # wxGlade: ProjectPanel.<event_handler>
         print("Event handler 'on_text_template_structure' not implemented!")
         event.Skip()
 
@@ -1827,15 +1953,29 @@ class InfoPanel(wx.Panel):
         wx.Panel.__init__(self, *args, **kwds)
         self.translation_panel = translation_panel
 
-        sizer_main = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Info"), wx.VERTICAL)
+        sizer_main = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Info"), wx.VERTICAL
+        )
 
-        self.text_information_description = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
+        self.text_information_description = wx.TextCtrl(
+            self, wx.ID_ANY, "", style=wx.TE_MULTILINE | wx.TE_READONLY
+        )
         self.text_information_description.SetFont(
-            wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, "Segoe UI"))
+            wx.Font(
+                14,
+                wx.FONTFAMILY_DEFAULT,
+                wx.FONTSTYLE_NORMAL,
+                wx.FONTWEIGHT_NORMAL,
+                0,
+                "Segoe UI",
+            )
+        )
 
         sizer_main.Add(self.text_information_description, 1, wx.EXPAND, 0)
 
-        self.sizer_operations = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Operations"), wx.VERTICAL)
+        self.sizer_operations = wx.StaticBoxSizer(
+            wx.StaticBox(self, wx.ID_ANY, "Operations"), wx.VERTICAL
+        )
         sizer_main.Add(self.sizer_operations, 1, wx.EXPAND, 0)
 
         self.SetSizer(sizer_main)
@@ -1851,14 +1991,15 @@ class InfoPanel(wx.Panel):
                 funct(self.translation_panel.tree, self.catalog, self.translation_panel)
 
             return specific
+
         if self.info is not None:
             data = INTERFACE.get(self.info)
-            desc = data['description']
+            desc = data["description"]
             self.text_information_description.SetValue(desc)
 
             self.sizer_operations.Clear(True)
-            for cmd in data['commands']:
-                button = wx.Button(self, wx.ID_ANY, cmd['name'])
+            for cmd in data["commands"]:
+                button = wx.Button(self, wx.ID_ANY, cmd["name"])
                 self.Bind(wx.EVT_BUTTON, as_event(cmd["command"]), button)
                 self.sizer_operations.Add(button, 0, 0, 0)
             self.Layout()
@@ -1899,7 +2040,9 @@ class PoboyWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_save_translation, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template\tCtrl+M", "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_template, item)
-        item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Translation as\tCtrl+Shift+T", "")
+        item = wxglade_tmp_menu.Append(
+            wx.ID_ANY, "Save Translation as\tCtrl+Shift+T", ""
+        )
         self.Bind(wx.EVT_MENU, self.on_menu_save_as_translation, item)
         item = wxglade_tmp_menu.Append(wx.ID_ANY, "Save Template as\tCtrl+Shift+M", "")
         self.Bind(wx.EVT_MENU, self.on_menu_save_as_template, item)
